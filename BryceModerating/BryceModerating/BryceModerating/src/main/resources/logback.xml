@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Console appender with simple pattern -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Reduce global log level to WARN to avoid noisy INFO logs -->
+    <root level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <!-- Keep your app logs at INFO if desired -->
+    <logger name="com.bryce.discord" level="INFO"/>
+
+    <!-- Quiet JDA and other libraries to WARN -->
+    <logger name="net.dv8tion.jda" level="WARN"/>
+    <logger name="org.apache" level="WARN"/>
+    <logger name="org.reflections" level="WARN"/>
+</configuration>

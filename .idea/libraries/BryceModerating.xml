@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="BryceModerating">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/BryceModerating/BryceModerating/out/artifacts/BryceModerating_jar/BryceModerating.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
