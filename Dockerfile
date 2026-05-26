@@ -7,6 +7,9 @@ COPY . .
 
 RUN mvn -B -DskipTests package
 
+# Debug: list what jars were created and check contents
+RUN ls -la target/ && jar tf target/BryceModerating-1.0-SNAPSHOT.jar | grep BryceModeratingBot
+
 # Stage 2: Run
 FROM eclipse-temurin:21-jre
 
