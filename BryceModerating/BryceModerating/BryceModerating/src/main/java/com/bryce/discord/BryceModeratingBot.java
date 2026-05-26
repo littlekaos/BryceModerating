@@ -65,7 +65,7 @@ public class BryceModeratingBot {
         moderationMessageListener = new ModerationMessageListener(dataService, configService, analytics);
 
         moderationCommandManager = new ModerationCommandManager(dataService, configService, analytics);
-        
+
         dataService.loadRolesFromDatabase(configService);
 
         // Initialize integrated components
