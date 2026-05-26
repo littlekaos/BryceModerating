@@ -20,7 +20,7 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
-import java.net.InetSocketAddress;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
