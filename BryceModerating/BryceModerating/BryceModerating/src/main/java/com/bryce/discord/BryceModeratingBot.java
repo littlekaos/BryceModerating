@@ -8,6 +8,7 @@ import com.bryce.discord.commands.*;
 import com.bryce.discord.listeners.*;
 import com.bryce.discord.services.*;
 import com.bryce.discord.utils.LoggingUtil;
+import com.sun.net.httpserver.HttpServer;
 import io.github.cdimascio.dotenv.Dotenv;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -19,7 +20,7 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
-
+import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -189,7 +190,20 @@ public class BryceModeratingBot {
         }, 60 * 1000, 60 * 1000); // Check every minute
     }
 
-    public static void main(String[] args) {
+    private static void startHealthServer() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+        server.createContext("/", exchange -> {
+            String response = "Bot is running!";
+            exchange.sendResponseHeaders(200, response.length());
+            exchange.getResponseBody().write(response.getBytes());
+            exchange.getResponseBody().close();
+        });
+        server.start();
+        System.out.println("Health check server started on port 8080");
+    }
+
+    public static void main(String[] args) throws Exception {
+        startHealthServer();
         loadEnvFile();
 
         BryceModeratingBot bot = new BryceModeratingBot();
@@ -245,7 +259,7 @@ public class BryceModeratingBot {
         try {
             jda.awaitReady();
             bot.serverLogsAdminCommands.setJDA(jda);
-            bot.getUserCache().setJDA(jda);  // FIX: Set JDA instance in UserCache
+            bot.getUserCache().setJDA(jda);
             bot.startServerLogs(jda);
             bot.startUnmuteChecker(jda);
 
