@@ -8,7 +8,7 @@ COPY pom.xml .
 RUN mvn dependency:go-offline -B
  
 # Copy source and build
-COPY src ./src
+COPY BryceModerating ./BryceModerating
 RUN mvn -B -DskipTests package
  
 # Stage 2: Run
