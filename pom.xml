@@ -66,6 +66,12 @@
     </dependencies>
 
     <build>
+        <sourceDirectory>BryceModerating/BryceModerating/BryceModerating/src/main/java</sourceDirectory>
+        <resources>
+            <resource>
+                <directory>BryceModerating/BryceModerating/BryceModerating/src/main/resources</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -87,6 +93,14 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <mainClass>com.bryce.discord.BryceModeratingBot</mainClass>
+                </configuration>
             </plugin>
         </plugins>
     </build>
