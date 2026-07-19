@@ -1,2 +1,11 @@
 # Project exclude paths
 /out/
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# Local databases and backups
+*.db
+backups/
