@@ -21,7 +21,7 @@ public class ModerationMessageListener extends ListenerAdapter {
     public ModerationMessageListener(DataService dataService, ConfigService configService, ModerationAnalytics analytics) {
         this.dataService = dataService;
         this.configService = configService;
-        this.loggingService = new LoggingService();
+        this.loggingService = new LoggingService(dataService);
         this.analytics = analytics;
     }
 

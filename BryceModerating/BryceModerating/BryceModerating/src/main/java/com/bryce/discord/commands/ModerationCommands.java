@@ -33,7 +33,7 @@ public class ModerationCommands {
     public ModerationCommands(DataService dataService, ConfigService configService, ModerationAnalytics analytics) {
         this.dataService = dataService;
         this.configService = configService;
-        this.loggingService = new LoggingService();
+        this.loggingService = new LoggingService(dataService);
         this.analytics = analytics;
     }
 
@@ -127,51 +127,6 @@ public class ModerationCommands {
         });
     }
 
-    public void handleSetMuteRole(SlashCommandInteractionEvent event) {
-        event.deferReply(true).queue();
-
-        if (!configService.hasAdminPermissions(event.getMember())) {
-            event.getHook().sendMessage("You don't have permission to use this command.").queue();
-            return;
-        }
-
-        Role muteRole = event.getOption("role").getAsRole();
-
-        if (muteRole.isManaged()) {
-            event.getHook().sendMessage("❌ Cannot use managed roles (bot or integration roles) for muting.").queue();
-            return;
-        }
-
-        dataService.saveCommandLog(event.getUser().getId(), event.getUser().getName(), event.getName());
-
-        Guild guild = event.getGuild();
-        dataService.setMuteRoleId(guild.getId(), muteRole.getId());
-
-        for (TextChannel channel : guild.getTextChannels()) {
-            channel.getPermissionContainer().upsertPermissionOverride(muteRole)
-                    .deny(net.dv8tion.jda.api.Permission.MESSAGE_SEND,
-                            net.dv8tion.jda.api.Permission.MESSAGE_SEND_IN_THREADS,
-                            net.dv8tion.jda.api.Permission.CREATE_PUBLIC_THREADS,
-                            net.dv8tion.jda.api.Permission.CREATE_PRIVATE_THREADS,
-                            net.dv8tion.jda.api.Permission.MESSAGE_ADD_REACTION)
-                    .queue();
-        }
-
-        for (net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel channel : guild.getVoiceChannels()) {
-            channel.getPermissionContainer().upsertPermissionOverride(muteRole)
-                    .deny(net.dv8tion.jda.api.Permission.VOICE_SPEAK)
-                    .queue();
-        }
-
-        EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("🔇 Mute Role Set")
-                .setDescription(String.format("Role **%s** will now be used for muting users.", muteRole.getName()))
-                .setColor(Color.GREEN)
-                .setTimestamp(Instant.now());
-
-        event.getHook().sendMessageEmbeds(embed.build()).queue();
-    }
-
     public void handleMute(SlashCommandInteractionEvent event) {
         event.deferReply(true).queue();
 
@@ -203,14 +158,14 @@ public class ModerationCommands {
         String muteRoleId = dataService.getMuteRoleId(guild.getId());
         
         if (muteRoleId == null) {
-            event.getHook().sendMessage("❌ No mute role has been set for this server. Please use `/setmuterole` first.").queue();
+            event.getHook().sendMessage("❌ No mute role for this server. Run `/adminsetup` to create or register one.").queue();
             return;
         }
 
         Role muteRole = guild.getRoleById(muteRoleId);
 
         if (muteRole == null) {
-            event.getHook().sendMessage("❌ The configured mute role no longer exists. Please use `/setmuterole` to set a new one.").queue();
+            event.getHook().sendMessage("❌ The configured mute role no longer exists. Run `/adminsetup` to create or register a new one.").queue();
             return;
         }
 
@@ -284,14 +239,14 @@ public class ModerationCommands {
         String muteRoleId = dataService.getMuteRoleId(guild.getId());
         
         if (muteRoleId == null) {
-            event.getHook().sendMessage("❌ No mute role has been set for this server. Please use `/setmuterole` first.").queue();
+            event.getHook().sendMessage("❌ No mute role for this server. Run `/adminsetup` to create or register one.").queue();
             return;
         }
 
         Role muteRole = guild.getRoleById(muteRoleId);
 
         if (muteRole == null) {
-            event.getHook().sendMessage("❌ The configured mute role no longer exists. Please use `/setmuterole` to set a new one.").queue();
+            event.getHook().sendMessage("❌ The configured mute role no longer exists. Run `/adminsetup` to create or register a new one.").queue();
             return;
         }
 

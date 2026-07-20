@@ -45,12 +45,26 @@ public class ServerLogsMessageListener extends ListenerAdapter {
     @Override
     public void onMessageDelete(MessageDeleteEvent event) {
         try {
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            // Bot messages are never cached (see onMessageReceived), so uncached
+            // deletes are almost always bot/system messages — skip logging them.
+            String userId = bot.getMessageCache().getMessageAuthorId(event.getMessageId());
+            if (userId == null) {
+                return;
+            }
+
+            // Extra guard: never log our own message deletions
+            if (userId.equals(event.getJDA().getSelfUser().getId())) {
+                bot.getMessageCache().removeMessage(event.getMessageId());
+                return;
+            }
+
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
 
             String content = bot.getMessageCache().getMessageContent(event.getMessageId());
-            String userId = bot.getMessageCache().getMessageAuthorId(event.getMessageId());
-            String userInfo = (userId != null) ?
-                    bot.getUserCache().getPlainUserInfo(userId) : "Unknown user";
+            String userInfo = bot.getUserCache().getPlainUserInfo(userId);
 
             bot.getDataService().logMessage(
                     event.getGuild().getId(),
@@ -85,7 +99,10 @@ public class ServerLogsMessageListener extends ListenerAdapter {
 
             bot.getUserCache().cacheUser(event.getAuthor());
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
             Message message = event.getMessage();
             String oldContent = bot.getMessageCache().getMessageContent(message.getId());
             String plainUserInfo = bot.getUserCache().getPlainUserInfo(event.getAuthor().getId());
@@ -118,7 +135,10 @@ public class ServerLogsMessageListener extends ListenerAdapter {
 
     @Override
     public void onMessageBulkDelete(MessageBulkDeleteEvent event) {
-        TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+        TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+        if (logChannel == null) {
+            return;
+        }
 
         for (String messageId : event.getMessageIds()) {
             String content = bot.getMessageCache().getMessageContent(messageId);
@@ -150,7 +170,10 @@ public class ServerLogsMessageListener extends ListenerAdapter {
                 bot.getUserCache().cacheUser(event.getUser());
             }
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
             String emojiDisplay = event.getReaction().getEmoji().getAsReactionCode();
             String[] userInfo = bot.getUserCache().getUserDisplayInfo(event.getUserId());
 
@@ -175,7 +198,10 @@ public class ServerLogsMessageListener extends ListenerAdapter {
                 bot.getUserCache().cacheUser(event.getUser());
             }
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
             String emojiDisplay = event.getReaction().getEmoji().getAsReactionCode();
             String[] userInfo = bot.getUserCache().getUserDisplayInfo(event.getUserId());
 

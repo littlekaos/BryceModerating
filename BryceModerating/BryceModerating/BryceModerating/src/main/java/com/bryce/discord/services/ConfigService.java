@@ -3,6 +3,7 @@ package com.bryce.discord.services;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.Permission;
 
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -18,6 +19,9 @@ public class ConfigService {
     private final Set<String> textOnlyChannels = new HashSet<>();
     private final Set<String> moderatorRoles = new HashSet<>();
     private final Set<String> adminRoles = new HashSet<>();
+
+    /** Same permission set applied to the Moderator role during /adminsetup. */
+    private static final EnumSet<Permission> MODERATOR_DISCORD_PERMISSIONS = buildModeratorDiscordPermissions();
 
     private static class CachedValue {
         final boolean value;
@@ -50,9 +54,10 @@ public class ConfigService {
             return cached.value;
         }
 
-        boolean hasPermissions = hasAdminPermissions(member) ||
-                member.getRoles().stream()
-                        .anyMatch(role -> moderatorRoles.contains(role.getId()));
+        // Registered mod role OR Discord mod perms (any of the Moderator role set) OR admin
+        boolean hasPermissions = hasAdminPermissions(member)
+                || hasRegisteredModeratorRole(member)
+                || hasModeratorDiscordPermissions(member);
 
         permissionCache.put(cacheKey, new CachedValue(hasPermissions));
         return hasPermissions;
@@ -69,11 +74,58 @@ public class ConfigService {
             return cached.value;
         }
 
-        boolean hasPermissions = member.getRoles().stream()
-                .anyMatch(role -> adminRoles.contains(role.getId()));
+        // Registered admin role OR Discord Administrator toggle
+        boolean hasPermissions = member.hasPermission(Permission.ADMINISTRATOR)
+                || hasRegisteredAdminRole(member);
 
         permissionCache.put(cacheKey, new CachedValue(hasPermissions));
         return hasPermissions;
+    }
+
+    private boolean hasRegisteredModeratorRole(Member member) {
+        return member.getRoles().stream().anyMatch(role -> moderatorRoles.contains(role.getId()));
+    }
+
+    private boolean hasRegisteredAdminRole(Member member) {
+        return member.getRoles().stream().anyMatch(role -> adminRoles.contains(role.getId()));
+    }
+
+    private boolean hasModeratorDiscordPermissions(Member member) {
+        return MODERATOR_DISCORD_PERMISSIONS.stream().anyMatch(member::hasPermission);
+    }
+
+    public static EnumSet<Permission> getModeratorDiscordPermissions() {
+        return EnumSet.copyOf(MODERATOR_DISCORD_PERMISSIONS);
+    }
+
+    private static EnumSet<Permission> buildModeratorDiscordPermissions() {
+        EnumSet<Permission> perms = EnumSet.of(
+                Permission.MANAGE_ROLES,
+                Permission.MANAGE_GUILD_EXPRESSIONS,
+                Permission.VIEW_AUDIT_LOGS,
+                Permission.NICKNAME_MANAGE,
+                Permission.KICK_MEMBERS,
+                Permission.BAN_MEMBERS,
+                Permission.MODERATE_MEMBERS,
+                Permission.MESSAGE_MANAGE,
+                Permission.MANAGE_THREADS,
+                Permission.VOICE_MUTE_OTHERS,
+                Permission.VOICE_MOVE_OTHERS
+        );
+        addPermissionIfPresent(perms, "VOICE_DEAFEN_OTHERS");
+        addPermissionIfPresent(perms, "VOICE_DEAF_OTHERS");
+        addPermissionIfPresent(perms, "CREATE_GUILD_EXPRESSIONS");
+        addPermissionIfPresent(perms, "PIN_MESSAGES");
+        addPermissionIfPresent(perms, "BYPASS_SLOWMODE");
+        return perms;
+    }
+
+    private static void addPermissionIfPresent(EnumSet<Permission> perms, String name) {
+        try {
+            perms.add(Permission.valueOf(name));
+        } catch (IllegalArgumentException ignored) {
+            // Not in this JDA version
+        }
     }
 
     public void clearPermissionCache(String memberId) {

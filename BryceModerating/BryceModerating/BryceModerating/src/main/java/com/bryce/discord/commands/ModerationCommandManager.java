@@ -3,7 +3,7 @@ package com.bryce.discord.commands;
 import com.bryce.discord.analytics.ModerationAnalytics;
 import com.bryce.discord.services.ConfigService;
 import com.bryce.discord.services.DataService;
-import net.dv8tion.jda.api.JDA;
+import com.bryce.discord.services.StaffSetupService;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -27,11 +27,14 @@ public class ModerationCommandManager extends ListenerAdapter {
     private final ModerationCommands moderationCommands;
     private final UtilityCommands utilityCommands;
     private final RoleCommand roleCommand;
+    private final StaffSetupService staffSetupService;
 
-    public ModerationCommandManager(DataService dataService, ConfigService configService, ModerationAnalytics analytics) {
+    public ModerationCommandManager(DataService dataService, ConfigService configService, ModerationAnalytics analytics,
+                                    StaffSetupService staffSetupService) {
         this.dataService = dataService;
         this.configService = configService;
         this.analytics = analytics;
+        this.staffSetupService = staffSetupService;
 
         this.moderationCommands = new ModerationCommands(dataService, configService, analytics);
         this.utilityCommands = new UtilityCommands(dataService, configService);
@@ -53,14 +56,11 @@ public class ModerationCommandManager extends ListenerAdapter {
             case "warn":
                 moderationCommands.handleWarn(event);
                 break;
-            case "setmuterole":
-                moderationCommands.handleSetMuteRole(event);
+            case "addmodroles":
+                utilityCommands.handleAddModRoles(event);
                 break;
-            case "setmodroles":
-                utilityCommands.handleSetModRoles(event);
-                break;
-            case "setadminroles":
-                utilityCommands.handleSetAdminRoles(event);
+            case "addadminroles":
+                utilityCommands.handleAddAdminRoles(event);
                 break;
             case "removemodroles":
                 utilityCommands.handleRemoveModRoles(event);
@@ -98,14 +98,20 @@ public class ModerationCommandManager extends ListenerAdapter {
             case "unrestrict":
                 moderationCommands.handleUnrestrict(event);
                 break;
-            case "exportdb":
-                utilityCommands.handleExportDb(event);
-                break;
             case "reason":
                 moderationCommands.handleReason(event);
                 break;
             case "help":
-                utilityCommands.handleHelp(event);
+                HelpCommand.sendHelpMenu(event);
+                break;
+            case "adminsetup":
+                if (event.getMember() == null ||
+                        (!event.getMember().hasPermission(Permission.ADMINISTRATOR)
+                                && !UtilityCommands.isUserAuthorized(event.getUser().getId()))) {
+                    event.reply("❌ You need **Administrator** permissions to run admin setup.").setEphemeral(true).queue();
+                    return;
+                }
+                staffSetupService.offerSetupEphemeral(event);
                 break;
             case "role":
                 roleCommand.execute(event);
@@ -198,37 +204,33 @@ public class ModerationCommandManager extends ListenerAdapter {
         globalCommands.add(Commands.slash("restrict-setup", "Interactive setup for channel restrictions")
                 .setDefaultPermissions(DefaultMemberPermissions.ENABLED));
 
-        globalCommands.add(Commands.slash("setmuterole", "Set the role to use for muting users")
-                .addOption(OptionType.ROLE, "role", "The role to use for muting", true)
-                .setDefaultPermissions(DefaultMemberPermissions.ENABLED));
-
         globalCommands.add(Commands.slash("savemoderationsystem", "Force save all moderation data")
-                .setDefaultPermissions(DefaultMemberPermissions.ENABLED));
-
-        globalCommands.add(Commands.slash("exportdb", "Export modbot.db database (owner only)")
                 .setDefaultPermissions(DefaultMemberPermissions.ENABLED));
 
         globalCommands.add(Commands.slash("reason", "Check the ban reason for a user")
                 .addOption(OptionType.STRING, "user", "The user ID to check ban reason for", true)
                 .setDefaultPermissions(DefaultMemberPermissions.ENABLED));
 
-        globalCommands.add(Commands.slash("setmodroles", "Set which role has moderator permissions")
-                .addOption(OptionType.ROLE, "role", "The moderator role", true)
+        globalCommands.add(Commands.slash("addmodroles", "Register a role for bot mod access (if it lacks Discord mod permissions)")
+                .addOption(OptionType.ROLE, "role", "Role to register as moderator", true)
                 .setDefaultPermissions(DefaultMemberPermissions.ENABLED));
 
-        globalCommands.add(Commands.slash("setadminroles", "Set which role has admin permissions")
-                .addOption(OptionType.ROLE, "role", "The admin role", true)
+        globalCommands.add(Commands.slash("addadminroles", "Register a role for bot admin access (if it lacks Administrator)")
+                .addOption(OptionType.ROLE, "role", "Role to register as admin", true)
                 .setDefaultPermissions(DefaultMemberPermissions.ENABLED));
 
-        globalCommands.add(Commands.slash("removemodroles", "Remove a moderator role")
+        globalCommands.add(Commands.slash("removemodroles", "Unregister a moderator role from the bot")
                 .addOption(OptionType.ROLE, "role", "The moderator role to remove", true)
                 .setDefaultPermissions(DefaultMemberPermissions.ENABLED));
 
-        globalCommands.add(Commands.slash("removeadminroles", "Remove an admin role")
+        globalCommands.add(Commands.slash("removeadminroles", "Unregister an admin role from the bot")
                 .addOption(OptionType.ROLE, "role", "The admin role to remove", true)
                 .setDefaultPermissions(DefaultMemberPermissions.ENABLED));
 
-        globalCommands.add(Commands.slash("help", "View help and guidance for the moderation bot")
+        globalCommands.add(Commands.slash("help", "View help and guidance for the bot")
+                .setDefaultPermissions(DefaultMemberPermissions.ENABLED));
+
+        globalCommands.add(Commands.slash("adminsetup", "Opt-in setup: logs, staff roles, and join-to-create voice")
                 .setDefaultPermissions(DefaultMemberPermissions.ENABLED));
 
         globalCommands.add(Commands.slash("role", "Role management")

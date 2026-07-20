@@ -8,10 +8,8 @@ import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.utils.FileUpload;
 
 import java.awt.Color;
-import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +36,7 @@ public class UtilityCommands {
     public UtilityCommands(DataService dataService, ConfigService configService) {
         this.dataService = dataService;
         this.configService = configService;
-        this.loggingService = new LoggingService();
+        this.loggingService = new LoggingService(dataService);
     }
 
     public void handlePurge(SlashCommandInteractionEvent event) {
@@ -210,30 +208,6 @@ public class UtilityCommands {
         }
     }
 
-    public void handleExportDb(SlashCommandInteractionEvent event) {
-        List<String> allowedUserIds = List.of(
-                "529480987525251082",
-                "689519709988585648"
-        );
-
-        if (!allowedUserIds.contains(event.getUser().getId())) {
-            event.reply("❌ You do not have permission to use this command.").setEphemeral(true).queue();
-            return;
-        }
-
-        File dbFile = new File("modbot.db");
-
-        if (!dbFile.exists()) {
-            event.reply("❌ modbot.db not found!").setEphemeral(true).queue();
-            return;
-        }
-
-        event.deferReply(true).queue();
-        event.getHook().sendMessage("📤 Exporting modbot.db...")
-                .addFiles(FileUpload.fromData(dbFile, "modbot.db"))
-                .queue();
-    }
-
     public static boolean isUserAuthorized(String userId) {
         for (String id : AUTHORIZED_USER_IDS) {
             if (id.equals(userId)) {
@@ -243,7 +217,7 @@ public class UtilityCommands {
         return false;
     }
 
-    public void handleSetModRoles(SlashCommandInteractionEvent event) {
+    public void handleAddModRoles(SlashCommandInteractionEvent event) {
         if (!event.getMember().hasPermission(net.dv8tion.jda.api.Permission.ADMINISTRATOR)) {
             event.reply("❌ You need **Administrator** permissions to use this command.").setEphemeral(true).queue();
             return;
@@ -254,17 +228,29 @@ public class UtilityCommands {
         var role = event.getOption("role").getAsRole();
 
         if (configService.getModeratorRoles().contains(role.getId())) {
-            event.getHook().sendMessage("⚠️ " + role.getName() + " is already a moderator role.").queue();
+            event.getHook().sendMessage("⚠️ " + role.getAsMention() + " is already registered as a moderator role.").queue();
             return;
         }
 
         configService.addModeratorRole(role.getId());
-
         dataService.saveBotRolesToDatabase(configService.getModeratorRoles(), configService.getAdminRoles());
 
+        boolean alreadyHasDiscordPerms = ConfigService.getModeratorDiscordPermissions().stream()
+                .anyMatch(role::hasPermission);
+
+        StringBuilder description = new StringBuilder();
+        description.append(role.getAsMention()).append(" is now registered for bot moderator access.\n\n");
+        if (alreadyHasDiscordPerms) {
+            description.append("_This role already has Discord moderator permissions, so holders can use the bot without registering. ")
+                    .append("Registration is a fallback if those permissions are removed later._");
+        } else {
+            description.append("_Roles with Discord moderator permissions (Kick, Ban, Timeout, etc.) already work without registering. ")
+                    .append("Use this when a staff role should have bot access without those Discord permissions._");
+        }
+
         EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("🛡️ Moderator Role Added")
-                .setDescription("✅ " + role.getName() + " (" + role.getId() + ") is now a moderator role")
+                .setTitle("Moderator Role Registered")
+                .setDescription(description.toString())
                 .setColor(Color.BLUE)
                 .setTimestamp(Instant.now());
 
@@ -272,7 +258,7 @@ public class UtilityCommands {
         System.out.println("Moderator role added by " + event.getUser().getName());
     }
 
-    public void handleSetAdminRoles(SlashCommandInteractionEvent event) {
+    public void handleAddAdminRoles(SlashCommandInteractionEvent event) {
         if (!event.getMember().hasPermission(net.dv8tion.jda.api.Permission.ADMINISTRATOR)) {
             event.reply("❌ You need **Administrator** permissions to use this command.").setEphemeral(true).queue();
             return;
@@ -283,65 +269,33 @@ public class UtilityCommands {
         var role = event.getOption("role").getAsRole();
 
         if (configService.getAdminRoles().contains(role.getId())) {
-            event.getHook().sendMessage("⚠️ " + role.getName() + " is already an admin role.").queue();
+            event.getHook().sendMessage("⚠️ " + role.getAsMention() + " is already registered as an admin role.").queue();
             return;
         }
 
         configService.addAdminRole(role.getId());
-
         dataService.saveBotRolesToDatabase(configService.getModeratorRoles(), configService.getAdminRoles());
 
+        boolean alreadyAdmin = role.hasPermission(net.dv8tion.jda.api.Permission.ADMINISTRATOR);
+
+        StringBuilder description = new StringBuilder();
+        description.append(role.getAsMention()).append(" is now registered for bot admin access.\n\n");
+        if (alreadyAdmin) {
+            description.append("_This role already has the Administrator permission, so holders can use admin commands without registering. ")
+                    .append("Registration is a fallback if that permission is removed later._");
+        } else {
+            description.append("_Roles with the Discord Administrator toggle already work without registering. ")
+                    .append("Use this when a staff role should have bot admin access without Administrator._");
+        }
+
         EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("👑 Admin Role Added")
-                .setDescription("✅ " + role.getName() + " (" + role.getId() + ") is now an admin role")
+                .setTitle("Admin Role Registered")
+                .setDescription(description.toString())
                 .setColor(Color.BLUE)
                 .setTimestamp(Instant.now());
 
         event.getHook().sendMessageEmbeds(embed.build()).queue();
         System.out.println("Admin role added by " + event.getUser().getName());
-    }
-
-    public void handleHelp(SlashCommandInteractionEvent event) {
-        event.deferReply(true).queue();
-
-        EmbedBuilder helpEmbed = new EmbedBuilder()
-                .setTitle("🛡️ Bryce Moderating - Integrated Bot Help")
-                .setColor(Color.BLUE)
-                .setDescription("The moderation, voice management, and logging systems are now integrated into one bot.")
-                
-                .addField("⚠️ Moderation System", 
-                        "**`/warn`** <user> <reason> [evidence]\n" +
-                        "**`/mute`** <user> <reason> [duration] | **`/unmute`**\n" +
-                        "**`/timeout`** <user> <reason> [duration] | **`/untimeout`**\n" +
-                        "**`/ban`** <user> <reason> [delete_days] | **`/unban`** <id>\n" +
-                        "**`/kick`** <user> <reason> | **`/purge`** <amount> [user]\n" +
-                        "**`/reason`** <id> - Check ban reasons", false)
-
-                .addField("🎙️ Voice Channel Management", 
-                        "**`/createvoice`** <name> [limit]\n" +
-                        "**`/deletevoice`** <channel>\n" +
-                        "**`/mychannels`** - Your recent channels\n" +
-                        "**`/activechannels`** - List active managed channels\n" +
-                        "**`/vcstats`** <type> [user] - Global/Server/User stats\n" +
-                        "**`/setup`** - Interactive voice manager configuration", false)
-
-                .addField("🔒 Channel Restrictions",
-                        "**`/restrict`** <channel> <type>\n" +
-                        "**`/unrestrict`** <channel> <type>\n" +
-                        "**`/restrict-setup`** - Interactive restriction setup", false)
-
-                .addField("⚙️ System & Administration", 
-                        "**`/setmodroles`** | **`/setadminroles`**\n" +
-                        "**`/setmuterole`** <role>\n" +
-                        "**`/reload-members`** - Force refresh member cache\n" +
-                        "**`/cache-stats`** - View bot performance metrics\n" +
-                        "**`/savemoderationsystem`** - Force manual data save", false)
-
-                .addField("📝 Notes", "• Moderation actions are logged to the configured log channel.\n• Setup requires **Administrator** permissions.", false)
-                .addField("📞 Support", "Contact <@689519709988585648> or <@529480987525251082>", false)
-                .setTimestamp(Instant.now());
-
-        event.getHook().sendMessageEmbeds(helpEmbed.build()).queue();
     }
 
     public void handleRemoveModRoles(SlashCommandInteractionEvent event) {
@@ -355,17 +309,17 @@ public class UtilityCommands {
         var role = event.getOption("role").getAsRole();
 
         if (!configService.getModeratorRoles().contains(role.getId())) {
-            event.getHook().sendMessage("⚠️ " + role.getName() + " is not a moderator role.").queue();
+            event.getHook().sendMessage("⚠️ " + role.getAsMention() + " is not a registered moderator role.").queue();
             return;
         }
 
         configService.removeModeratorRole(role.getId());
-
         dataService.saveBotRolesToDatabase(configService.getModeratorRoles(), configService.getAdminRoles());
 
         EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("🛡️ Moderator Role Removed")
-                .setDescription("✅ " + role.getName() + " (" + role.getId() + ") is no longer a moderator role")
+                .setTitle("Moderator Role Unregistered")
+                .setDescription(role.getAsMention() + " is no longer registered for bot moderator access.\n\n"
+                        + "_If this role still has Discord moderator permissions, holders can still use the bot._")
                 .setColor(Color.RED)
                 .setTimestamp(Instant.now());
 
@@ -384,17 +338,17 @@ public class UtilityCommands {
         var role = event.getOption("role").getAsRole();
 
         if (!configService.getAdminRoles().contains(role.getId())) {
-            event.getHook().sendMessage("⚠️ " + role.getName() + " is not an admin role.").queue();
+            event.getHook().sendMessage("⚠️ " + role.getAsMention() + " is not a registered admin role.").queue();
             return;
         }
 
         configService.removeAdminRole(role.getId());
-
         dataService.saveBotRolesToDatabase(configService.getModeratorRoles(), configService.getAdminRoles());
 
         EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("👑 Admin Role Removed")
-                .setDescription("✅ " + role.getName() + " (" + role.getId() + ") is no longer an admin role")
+                .setTitle("Admin Role Unregistered")
+                .setDescription(role.getAsMention() + " is no longer registered for bot admin access.\n\n"
+                        + "_If this role still has Administrator, holders can still use admin commands._")
                 .setColor(Color.RED)
                 .setTimestamp(Instant.now());
 

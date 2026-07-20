@@ -53,10 +53,6 @@ public class VoiceChannelService {
         logChannelCreation(channel, creator.getUser(), "AUTOMATIC");
     }
 
-    public void logCustomChannelCreation(VoiceChannel channel, User creator) {
-        logChannelCreation(channel, creator, "CUSTOM");
-    }
-
     // Voice Channel Deletion Methods
     public void logChannelDeletion(String channelId) {
         database.markChannelDeleted(channelId);

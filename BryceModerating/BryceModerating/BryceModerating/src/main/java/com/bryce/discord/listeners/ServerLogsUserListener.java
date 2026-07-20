@@ -26,7 +26,10 @@ public class ServerLogsUserListener extends ListenerAdapter {
 
             if (event.getUser().getMutualGuilds().isEmpty()) return;
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getUser().getMutualGuilds().get(0));
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getUser().getMutualGuilds().get(0), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
             String[] userInfo = bot.getUserCache().getUserDisplayInfo(event.getUser().getId());
 
             for (net.dv8tion.jda.api.entities.Guild guild : event.getUser().getMutualGuilds()) {
@@ -58,7 +61,10 @@ public class ServerLogsUserListener extends ListenerAdapter {
 
             if (event.getUser().getMutualGuilds().isEmpty()) return;
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getUser().getMutualGuilds().get(0));
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getUser().getMutualGuilds().get(0), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
             String[] userInfo = bot.getUserCache().getUserDisplayInfo(event.getUser().getId());
 
             for (net.dv8tion.jda.api.entities.Guild guild : event.getUser().getMutualGuilds()) {

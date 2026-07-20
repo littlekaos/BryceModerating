@@ -22,10 +22,9 @@ public class VoiceChannelManager {
     private final VoiceChannelService voiceService;
 
     private static final Pattern CREATE_VC_PATTERN = Pattern.compile(
-            "Create (\\d+s?|Duo|Trio|Squad|Duos|Trios|Squads|6mans|Solo|Solos)( VC)?",
+            "(?:Create )?(\\d+s?|Duo|Trio|Squad|Duos|Trios|Squads|6mans|Solo|Solos)(?: VC)?",
             Pattern.CASE_INSENSITIVE);
 
-    private static final String NAMED_FORMAT_SERVER = "709746803901464587";
     private static final Map<String, Integer> NAME_TO_NUMBER = new HashMap<>();
 
     static {
@@ -60,6 +59,13 @@ public class VoiceChannelManager {
     }
 
     public boolean isCreateVcChannel(String channelName) {
+        return matchesCreateVcName(channelName);
+    }
+
+    public static boolean matchesCreateVcName(String channelName) {
+        if (channelName == null) {
+            return false;
+        }
         boolean matches = CREATE_VC_PATTERN.matcher(channelName).matches();
         System.out.println("DEBUG: Checking if '" + channelName + "' matches pattern: " + matches);
         return matches;
@@ -114,27 +120,6 @@ public class VoiceChannelManager {
         }
     }
 
-    public void createCustomVoiceChannel(Guild guild, User user, String name, int limit, Runnable onSuccess, Runnable onError) {
-        String guildId = guild.getId();
-        if (!EventsServerConfig.hasServerCategory(guildId)) {
-            throw new IllegalArgumentException("This bot is not configured for this server.");
-        }
-
-        String categoryId = EventsServerConfig.getCategoryId(guildId);
-
-        guild.createVoiceChannel(name)
-                .setParent(guild.getCategoryById(categoryId))
-                .setUserlimit(limit)
-                .queue(voiceChannel -> {
-                    userCreatedVoiceChannels.put(user.getId(), voiceChannel.getIdLong());
-                    autoCreatedChannels.add(voiceChannel.getIdLong());
-
-                    voiceService.logCustomChannelCreation(voiceChannel, user);
-
-                    onSuccess.run();
-                }, error -> onError.run());
-    }
-
     public void deleteEmptyVoiceChannel(VoiceChannel channel) {
         long channelId = channel.getIdLong();
 
@@ -149,53 +134,11 @@ public class VoiceChannelManager {
         }
     }
 
-    public boolean isVoiceChannelCreator(User user, VoiceChannel channel) {
-        return userCreatedVoiceChannels.containsKey(user.getId()) &&
-                userCreatedVoiceChannels.get(user.getId()) == channel.getIdLong();
-    }
-
-    public void deleteUserVoiceChannel(User user, VoiceChannel channel) {
-        long channelId = channel.getIdLong();
-
-        voiceService.logChannelDeletion(channel.getId());
-
-        if (isVoiceChannelCreator(user, channel)) {
-            userCreatedVoiceChannels.remove(user.getId());
-        }
-        autoCreatedChannels.remove(channelId);
-    }
-
     private String formatChannelNameWithUser(String guildId, int userLimit, String userLimitStr, Member member) {
 
         String displayName = member.getEffectiveName();
 
         return displayName + "'s VC";
-    }
-
-    private String formatChannelName(String guildId, int userLimit, String userLimitStr) {
-        if (guildId.equals(NAMED_FORMAT_SERVER)) {
-            if (userLimit == 1) {
-                return "Solo";
-            } else if (userLimit == 2) {
-                return "Duos";
-            } else if (userLimit == 3) {
-                return "Trios";
-            } else if (userLimit == 4) {
-                return "Squads";
-            } else if (userLimit == 6) {
-                return "6 Mans";
-            } else {
-                return userLimit + "s";
-            }
-        } else {
-            if (userLimitStr.equalsIgnoreCase("6mans")) {
-                return "6 Mans";
-            } else if (userLimit > 0) {
-                return userLimit + "s";
-            } else {
-                return "VC";
-            }
-        }
     }
 
     public boolean isAutoCreatedChannel(long channelId) {
@@ -204,11 +147,6 @@ public class VoiceChannelManager {
 
     public EventsServerConfig getEventsServerConfig() {
         return EventsServerConfig;
-    }
-
-    public void addUserCreatedChannel(String userId, long channelId) {
-        userCreatedVoiceChannels.put(userId, channelId);
-        autoCreatedChannels.add(channelId);
     }
 
     public VoiceChannelService getVoiceService() {

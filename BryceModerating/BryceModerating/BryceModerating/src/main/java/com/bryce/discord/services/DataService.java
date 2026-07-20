@@ -109,15 +109,57 @@ public class DataService {
     }
 
     public void setMuteRoleId(String guildId, String muteRoleId) {
+        setGuildSetting(guildId, "muteRoleId", muteRoleId);
+        System.out.println("Saved muteRoleId for guild " + guildId + ": " + muteRoleId);
+    }
+
+    public String getGuildSetting(String guildId, String key) {
         try {
-            DatabaseManager.executeWithRetry(conn -> {
-                String sql = "INSERT INTO guild_settings (guildId, key, value) VALUES (?, 'muteRoleId', ?) " +
-                           "ON CONFLICT (guildId, key) DO UPDATE SET value = EXCLUDED.value";
+            return DatabaseManager.executeWithRetry(conn -> {
+                String sql = "SELECT value FROM guild_settings WHERE guildId = ? AND key = ?";
                 try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                     pstmt.setString(1, guildId);
-                    pstmt.setString(2, muteRoleId);
+                    pstmt.setString(2, key);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        if (rs.next()) {
+                            return rs.getString("value");
+                        }
+                    }
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public void setGuildSetting(String guildId, String key, String value) {
+        try {
+            DatabaseManager.executeWithRetry(conn -> {
+                String sql = "INSERT INTO guild_settings (guildId, key, value) VALUES (?, ?, ?) " +
+                        "ON CONFLICT (guildId, key) DO UPDATE SET value = EXCLUDED.value";
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, guildId);
+                    pstmt.setString(2, key);
+                    pstmt.setString(3, value);
                     pstmt.executeUpdate();
-                    System.out.println("Saved muteRoleId for guild " + guildId + ": " + muteRoleId);
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void clearGuildSetting(String guildId, String key) {
+        try {
+            DatabaseManager.executeWithRetry(conn -> {
+                String sql = "DELETE FROM guild_settings WHERE guildId = ? AND key = ?";
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, guildId);
+                    pstmt.setString(2, key);
+                    pstmt.executeUpdate();
                 }
                 return null;
             });

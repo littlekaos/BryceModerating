@@ -22,10 +22,10 @@ Use `/restrict`, `/unrestrict`, or `/restrict-setup` to configure channels.
 Audit-style logging for messages, members, channels, roles, and server events, with member and message caching for lookups.
 
 ### Voice channel manager
-Users can create and manage temporary voice channels:
+Users can create temporary voice channels via join-to-create:
 - `/setup` — enable the voice channel manager for a server
-- `/createvoice`, `/deletevoice`, `/mychannels`, `/activechannels`, `/vcstats`
-- `/vchelp` — command help
+- Join a **Create … VC** lobby channel to spawn a temp VC (auto-deletes when empty)
+- `/help` — unified help menu (moderation, voice, restrictions, admin)
 
 ### Data and reliability
 - SQLite database (`modbot.db`) for warnings, settings, voice channels, and analytics
@@ -103,7 +103,7 @@ On first run, the bot initializes the database, loads saved data, registers glob
 4. For voice channels: `/setup` in the target server
 5. Use `/help` in Discord for in-bot guidance
 
-Some commands are restricted to server administrators or bot owners (for example `/exportdb` and `/savemoderationsystem`).
+Some commands are restricted to server administrators or bot owners (for example `/savemoderationsystem`).
 
 ## Project structure
 

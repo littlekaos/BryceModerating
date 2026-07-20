@@ -1,5 +1,6 @@
 package com.bryce.discord.services;
 
+import com.bryce.discord.utils.LoggingUtil;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -14,39 +15,44 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class LoggingService {
+    private final DataService dataService;
     private final Map<String, TextChannel> logChannelCache = new ConcurrentHashMap<>();
 
+    public LoggingService(DataService dataService) {
+        this.dataService = dataService;
+    }
+
+    /**
+     * Resolve a log channel by configured name. Never creates channels.
+     */
     public TextChannel getLogChannel(Guild guild, String channelName) {
-        String cacheKey = guild.getId() + ":" + channelName;
-        if (logChannelCache.containsKey(cacheKey)) {
-            return logChannelCache.get(cacheKey);
+        if (guild == null || channelName == null) {
+            return null;
         }
 
-        TextChannel logChannel = guild.getTextChannelsByName(channelName, true).stream().findFirst().orElse(null);
+        String cacheKey = guild.getId() + ":" + channelName;
+        TextChannel cached = logChannelCache.get(cacheKey);
+        if (cached != null) {
+            // Verify still exists
+            if (guild.getTextChannelById(cached.getId()) != null) {
+                return cached;
+            }
+            logChannelCache.remove(cacheKey);
+        }
+
+        TextChannel logChannel;
+        if (ConfigService.MODERATION_LOG_CHANNEL_NAME.equalsIgnoreCase(channelName)) {
+            logChannel = LoggingUtil.findModerationLogsChannel(guild, dataService);
+        } else if (ConfigService.PURGE_LOG_CHANNEL_NAME.equalsIgnoreCase(channelName)) {
+            logChannel = LoggingUtil.findServerLogsChannel(guild, dataService);
+        } else {
+            logChannel = guild.getTextChannelsByName(channelName, true).stream().findFirst().orElse(null);
+        }
+
         if (logChannel != null) {
             logChannelCache.put(cacheKey, logChannel);
-            return logChannel;
         }
-
-        guild.createTextChannel(channelName).queue(newChannel -> {
-            String topic;
-            switch (channelName) {
-                case "staff-strikes":
-                    topic = "This channel logs all staff strike actions.";
-                    break;
-                case "moderation-logs":
-                    topic = "This channel logs all moderation actions (warn, mute, timeout, etc).";
-                    break;
-                default:
-                    topic = "Server logging channel.";
-            }
-
-            newChannel.getManager().setTopic(topic).queue(success -> {
-                logChannelCache.put(cacheKey, newChannel);
-            });
-        });
-
-        return null;
+        return logChannel;
     }
 
     public void logModAction(Guild guild, String channelName, MessageEmbed embed) {
@@ -88,6 +94,10 @@ public class LoggingService {
                             }
                         }));
     }
+
+    public void invalidateCache(Guild guild) {
+        if (guild == null) return;
+        String prefix = guild.getId() + ":";
+        logChannelCache.keySet().removeIf(key -> key.startsWith(prefix));
+    }
 }
-
-

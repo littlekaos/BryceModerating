@@ -7,7 +7,6 @@ import com.bryce.discord.cache.UserCache;
 import com.bryce.discord.commands.*;
 import com.bryce.discord.listeners.*;
 import com.bryce.discord.services.*;
-import com.bryce.discord.utils.LoggingUtil;
 import io.github.cdimascio.dotenv.Dotenv;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -38,13 +37,13 @@ public class BryceModeratingBot {
     private final ModerationMessageListener moderationMessageListener;
     private final ModerationCommandManager moderationCommandManager;
     private final BackupService backupService;
+    private final StaffSetupService staffSetupService;
 
     // Integrated components
     private final UserCache userCache;
     private final MessageCache messageCache;
     private final ServerLogsAdminCommands serverLogsAdminCommands;
     private final VoiceChannelManager voiceChannelManager;
-    private final EventsSetupManager eventsSetupManager;
 
     private static final int SERVER_LOGS_AUTOSAVE_INTERVAL = 15;
 
@@ -63,7 +62,8 @@ public class BryceModeratingBot {
 
         moderationMessageListener = new ModerationMessageListener(dataService, configService, analytics);
 
-        moderationCommandManager = new ModerationCommandManager(dataService, configService, analytics);
+        staffSetupService = new StaffSetupService(dataService, configService);
+        moderationCommandManager = new ModerationCommandManager(dataService, configService, analytics, staffSetupService);
 
         dataService.loadRolesFromDatabase(configService);
 
@@ -72,7 +72,6 @@ public class BryceModeratingBot {
         messageCache = new MessageCache();
         serverLogsAdminCommands = new ServerLogsAdminCommands(this);
         voiceChannelManager = new VoiceChannelManager();
-        eventsSetupManager = new EventsSetupManager();
 
         setupChannelRestrictions();
 
@@ -133,7 +132,6 @@ public class BryceModeratingBot {
                     System.out.println("[INFO] Waiting " + delay + " seconds before loading members for guild: " + guild.getName());
                     Thread.sleep(delay * 1000L);
 
-                    LoggingUtil.ensureLogChannel(guild);
                     System.out.println("[INFO] Loading members for guild: " + guild.getName());
 
                     guild.loadMembers().onSuccess(members -> {
@@ -223,8 +221,8 @@ public class BryceModeratingBot {
                 .enableCache(EnumSet.allOf(CacheFlag.class))
                 .addEventListeners(bot.moderationMessageListener)
                 .addEventListeners(bot.moderationCommandManager)
-                .addEventListeners(new GuildJoinListener(bot.dataService))
-                .addEventListeners(new RoleChangeListener(bot.configService))
+                .addEventListeners(new GuildJoinListener(bot.dataService, bot.staffSetupService))
+                .addEventListeners(new RoleChangeListener(bot.configService, bot.dataService))
 
                 .addEventListeners(new ServerLogsMessageListener(bot))
                 .addEventListeners(new ServerLogsMemberListener(bot))
@@ -236,8 +234,9 @@ public class BryceModeratingBot {
 
                 .addEventListeners(new EventsCommandListener(bot.voiceChannelManager))
                 .addEventListeners(new EventsVoiceListener(bot.voiceChannelManager))
-                .addEventListeners(new EventsSetupCommandListener(bot.eventsSetupManager))
                 .addEventListeners(new ChannelRestrictionSetupListener(bot.dataService, bot.configService))
+                .addEventListeners(new HelpCommand())
+                .addEventListeners(new StaffSetupListener(bot.staffSetupService))
                 .setStatus(onlineStatus)
                 .setActivity(Activity.playing(statusText))
                 .build();

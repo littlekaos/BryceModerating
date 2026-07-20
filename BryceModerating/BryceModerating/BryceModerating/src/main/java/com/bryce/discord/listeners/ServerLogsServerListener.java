@@ -28,7 +28,10 @@ public class ServerLogsServerListener extends ListenerAdapter {
 
     @Override
     public void onGuildJoin(GuildJoinEvent event) {
-        TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+        TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+        if (logChannel == null) {
+            return;
+        }
 
         bot.getDataService().logGeneral(event.getGuild().getId(), null, "BOT_GUILD_JOIN",
                 "Name: " + event.getGuild().getName());
@@ -47,7 +50,10 @@ public class ServerLogsServerListener extends ListenerAdapter {
 
     @Override
     public void onGuildUpdateName(GuildUpdateNameEvent event) {
-        TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+        TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+        if (logChannel == null) {
+            return;
+        }
 
         bot.getDataService().logGeneral(event.getGuild().getId(), null, "GUILD_NAME_UPDATE",
                 "Old: " + event.getOldName() + ", New: " + event.getNewName());
@@ -62,7 +68,10 @@ public class ServerLogsServerListener extends ListenerAdapter {
 
     @Override
     public void onGuildUpdateIcon(GuildUpdateIconEvent event) {
-        TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+        TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+        if (logChannel == null) {
+            return;
+        }
 
         EmbedBuilder embed = LoggingUtil.createEmbed(Color.ORANGE, "Server Icon Updated")
                 .setDescription("**Old Icon:** " + (event.getOldIconUrl() != null ?
@@ -77,7 +86,10 @@ public class ServerLogsServerListener extends ListenerAdapter {
     @Override
     public void onGuildInviteCreate(GuildInviteCreateEvent event) {
         try {
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
 
             if (event.getInvite().getInviter() != null) {
                 bot.getUserCache().cacheUser(event.getInvite().getInviter());
@@ -106,7 +118,10 @@ public class ServerLogsServerListener extends ListenerAdapter {
         try {
             bot.getUserCache().cacheUser(event.getUser());
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
 
             bot.getDataService().logGeneral(event.getGuild().getId(), event.getUser().getId(), "GUILD_BAN",
                     "Username: " + event.getUser().getName());
@@ -136,7 +151,10 @@ public class ServerLogsServerListener extends ListenerAdapter {
         try {
             bot.getUserCache().cacheUser(event.getUser());
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
 
             bot.getDataService().logGeneral(event.getGuild().getId(), event.getUser().getId(), "GUILD_UNBAN",
                     "Username: " + event.getUser().getName());

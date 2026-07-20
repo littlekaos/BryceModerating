@@ -32,7 +32,10 @@ public class ServerLogsMemberListener extends ListenerAdapter {
         try {
             bot.getUserCache().cacheUser(event.getUser());
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
             String accountCreationTime = event.getUser().getTimeCreated()
                     .atZoneSameInstant(ZoneId.of("America/Indianapolis"))
                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z"));
@@ -61,7 +64,10 @@ public class ServerLogsMemberListener extends ListenerAdapter {
         try {
             bot.getUserCache().cacheUser(event.getUser());
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
             String leaveTime = LoggingUtil.getFormattedTime(LoggingUtil.getIndianapolisZone());
 
             String[] userInfo = bot.getUserCache().getUserDisplayInfo(event.getUser().getId());
@@ -91,7 +97,10 @@ public class ServerLogsMemberListener extends ListenerAdapter {
         try {
             bot.getUserCache().cacheUser(event.getUser());
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
             String[] userInfo = bot.getUserCache().getUserDisplayInfo(event.getUser().getId());
 
             bot.getDataService().logGeneral(event.getGuild().getId(), event.getUser().getId(), "NICKNAME_UPDATE",
@@ -119,7 +128,10 @@ public class ServerLogsMemberListener extends ListenerAdapter {
         try {
             bot.getUserCache().cacheUser(event.getMember().getUser());
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
             String[] userInfo = bot.getUserCache().getUserDisplayInfo(event.getMember().getUser().getId());
 
             bot.getDataService().logGeneral(event.getGuild().getId(), event.getMember().getUser().getId(), "TIMEOUT_UPDATE",
@@ -147,7 +159,10 @@ public class ServerLogsMemberListener extends ListenerAdapter {
         try {
             bot.getUserCache().cacheUser(event.getMember().getUser());
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
             String[] userInfo = bot.getUserCache().getUserDisplayInfo(event.getMember().getUser().getId());
 
             EmbedBuilder embed = LoggingUtil.createEmbed(Color.ORANGE, "Member Avatar Updated")
@@ -172,7 +187,10 @@ public class ServerLogsMemberListener extends ListenerAdapter {
         try {
             bot.getUserCache().cacheUser(event.getMember().getUser());
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
             String addedRoles = event.getRoles().stream()
                     .map(role -> role.getName() + " (`" + role.getId() + "`)")
                     .collect(Collectors.joining(", "));
@@ -203,7 +221,10 @@ public class ServerLogsMemberListener extends ListenerAdapter {
         try {
             bot.getUserCache().cacheUser(event.getMember().getUser());
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
             String removedRoles = event.getRoles().stream()
                     .map(role -> role.getName() + " (`" + role.getId() + "`)")
                     .collect(Collectors.joining(", "));

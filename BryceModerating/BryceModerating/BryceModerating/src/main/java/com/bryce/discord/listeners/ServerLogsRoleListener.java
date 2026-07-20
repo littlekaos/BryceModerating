@@ -24,7 +24,10 @@ public class ServerLogsRoleListener extends ListenerAdapter {
 
     @Override
     public void onRoleCreate(RoleCreateEvent event) {
-        TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+        TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+        if (logChannel == null) {
+            return;
+        }
 
         bot.getDataService().logGeneral(event.getGuild().getId(), null, "ROLE_CREATE",
                 "Role: " + event.getRole().getName() + " (" + event.getRole().getId() + ")");
@@ -39,7 +42,10 @@ public class ServerLogsRoleListener extends ListenerAdapter {
 
     @Override
     public void onRoleDelete(RoleDeleteEvent event) {
-        TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+        TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+        if (logChannel == null) {
+            return;
+        }
 
         bot.getDataService().logGeneral(event.getGuild().getId(), null, "ROLE_DELETE",
                 "Role: " + event.getRole().getName() + " (" + event.getRole().getId() + ")");
@@ -54,7 +60,10 @@ public class ServerLogsRoleListener extends ListenerAdapter {
 
     @Override
     public void onRoleUpdateName(RoleUpdateNameEvent event) {
-        TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+        TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+        if (logChannel == null) {
+            return;
+        }
 
         EmbedBuilder embed = LoggingUtil.createEmbed(Color.ORANGE, "Role Name Updated")
                 .setDescription("**Role ID:** " + event.getRole().getId() + "\n" +
@@ -67,7 +76,10 @@ public class ServerLogsRoleListener extends ListenerAdapter {
 
     @Override
     public void onRoleUpdateColor(RoleUpdateColorEvent event) {
-        TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+        TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+        if (logChannel == null) {
+            return;
+        }
 
         String oldColorHex = event.getOldColor() != null ?
                 String.format("#%06X", (0xFFFFFF & event.getOldColor().getRGB())) : "None";
@@ -86,7 +98,10 @@ public class ServerLogsRoleListener extends ListenerAdapter {
 
     @Override
     public void onRoleUpdatePermissions(RoleUpdatePermissionsEvent event) {
-        TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+        TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+        if (logChannel == null) {
+            return;
+        }
 
         EmbedBuilder embed = LoggingUtil.createEmbed(Color.ORANGE, "Role Permissions Updated")
                 .setDescription("**Role:** " + event.getRole().getName() + "\n" +

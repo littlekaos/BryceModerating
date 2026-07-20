@@ -24,7 +24,10 @@ public class ServerLogsChannelListener extends ListenerAdapter {
 
     @Override
     public void onChannelCreate(ChannelCreateEvent event) {
-        TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+        TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+        if (logChannel == null) {
+            return;
+        }
 
         EmbedBuilder embed = LoggingUtil.createEmbed(Color.GREEN, "Channel Created")
                 .setDescription("**Channel:** " + event.getChannel().getName())
@@ -35,7 +38,10 @@ public class ServerLogsChannelListener extends ListenerAdapter {
 
     @Override
     public void onChannelDelete(ChannelDeleteEvent event) {
-        TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+        TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+        if (logChannel == null) {
+            return;
+        }
 
         EmbedBuilder embed = LoggingUtil.createEmbed(Color.RED, "Channel Deleted")
                 .setDescription("**Channel:** " + event.getChannel().getName())
@@ -46,7 +52,10 @@ public class ServerLogsChannelListener extends ListenerAdapter {
 
     @Override
     public void onEmojiAdded(EmojiAddedEvent event) {
-        TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+        TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+        if (logChannel == null) {
+            return;
+        }
 
         EmbedBuilder embed = LoggingUtil.createEmbed(Color.GREEN, "Emoji Added")
                 .setDescription("**Emoji:** " + event.getEmoji().getName())
@@ -57,7 +66,10 @@ public class ServerLogsChannelListener extends ListenerAdapter {
 
     @Override
     public void onEmojiRemoved(EmojiRemovedEvent event) {
-        TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+        TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+        if (logChannel == null) {
+            return;
+        }
 
         EmbedBuilder embed = LoggingUtil.createEmbed(Color.RED, "Emoji Removed")
                 .setDescription("**Emoji:** " + event.getEmoji().getName())
@@ -71,7 +83,10 @@ public class ServerLogsChannelListener extends ListenerAdapter {
         try {
             bot.getUserCache().cacheUser(event.getMember().getUser());
 
-            TextChannel logChannel = LoggingUtil.ensureLogChannel(event.getGuild());
+            TextChannel logChannel = LoggingUtil.findServerLogsChannel(event.getGuild(), bot.getDataService());
+            if (logChannel == null) {
+                return;
+            }
             String[] userInfo = bot.getUserCache().getUserDisplayInfo(event.getMember().getUser().getId());
 
             if (event.getChannelJoined() != null) {
