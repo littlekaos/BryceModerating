@@ -1,6 +1,5 @@
 package com.bryce.discord.services;
 
-import com.bryce.discord.services.VoiceChannelDatabase;
 import com.bryce.discord.models.VoiceChannelRecord;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -118,11 +117,8 @@ public class VoiceChannelService {
     public String getGuildStats(String guildId) {
         int activeChannels = database.getActiveChannelCount(guildId);
 
-        StringBuilder stats = new StringBuilder();
-        stats.append("**Server Voice Channel Statistics**\n");
-        stats.append("🔊 Active Channels: **").append(activeChannels).append("**\n");
-
-        return stats.toString();
+        return "**Server Voice Channel Statistics**\n" +
+                "🔊 Active Channels: **" + activeChannels + "**\n";
     }
 
     private String formatDuration(long seconds) {

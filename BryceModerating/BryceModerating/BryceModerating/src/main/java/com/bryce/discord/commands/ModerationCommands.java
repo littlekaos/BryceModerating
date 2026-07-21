@@ -18,10 +18,7 @@ import net.dv8tion.jda.api.utils.FileUpload;
 
 import java.awt.Color;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 public class ModerationCommands {
@@ -59,15 +56,16 @@ public class ModerationCommands {
             }
 
             WarnRecord warnRecord = new WarnRecord(
+                    event.getGuild().getId(),
                     targetUser.getId(),
                     event.getUser().getId(),
                     reason,
                     System.currentTimeMillis()
             );
             dataService.addWarning(warnRecord);
-            int currentWarnings = dataService.getWarningsForUser(targetUser.getId()).size();
+            int currentWarnings = dataService.getWarningsForUser(event.getGuild().getId(), targetUser.getId()).size();
 
-            analytics.recordAction(ActionType.WARN, event.getUser(), targetUser, reason, 0, currentWarnings);
+            analytics.recordAction(event.getGuild().getId(), ActionType.WARN, event.getUser(), targetUser, reason, 0, currentWarnings);
 
             EmbedBuilder warnEmbed = new EmbedBuilder()
                     .setTitle("⚠️ Warning Issued")
@@ -186,7 +184,7 @@ public class ModerationCommands {
                         String durationText = duration != null ?
                                 duration + " minutes" : "Permanent";
 
-                        analytics.recordAction(ActionType.MUTE, event.getUser(), targetUser, reason,
+                        analytics.recordAction(event.getGuild().getId(), ActionType.MUTE, event.getUser(), targetUser, reason,
                                 duration != null ? duration : 0, 0);
 
                         EmbedBuilder muteEmbed = new EmbedBuilder()
@@ -270,7 +268,7 @@ public class ModerationCommands {
             guild.removeRoleFromMember(targetMember, muteRole).queue(
                     success -> {
                         dataService.removeMute(guild.getId(), targetUser.getId());
-                        analytics.recordAction(ActionType.UNMUTE, event.getUser(), targetUser, reason, 0, 0);
+                        analytics.recordAction(event.getGuild().getId(), ActionType.UNMUTE, event.getUser(), targetUser, reason, 0, 0);
 
                         EmbedBuilder unmuteEmbed = new EmbedBuilder()
                                 .setTitle("🔊 User Unmuted")
@@ -343,7 +341,7 @@ public class ModerationCommands {
             targetMember.timeoutFor(java.time.Duration.ofMinutes(finalDuration)).reason(reason).queue(
                     success -> {
 
-                        analytics.recordAction(ActionType.TIMEOUT, event.getUser(), targetUser, reason, finalDuration, 0);
+                        analytics.recordAction(event.getGuild().getId(), ActionType.TIMEOUT, event.getUser(), targetUser, reason, finalDuration, 0);
 
                         EmbedBuilder timeoutEmbed = new EmbedBuilder()
                                 .setTitle("⏰ User Timed Out")
@@ -406,7 +404,7 @@ public class ModerationCommands {
             targetMember.removeTimeout().reason(reason).queue(
                     success -> {
 
-                        analytics.recordAction(ActionType.UNTIMEOUT, event.getUser(), targetUser, reason, 0, 0);
+                        analytics.recordAction(event.getGuild().getId(), ActionType.UNTIMEOUT, event.getUser(), targetUser, reason, 0, 0);
 
                         EmbedBuilder untimeoutEmbed = new EmbedBuilder()
                                 .setTitle("⏰ Timeout Removed")
@@ -485,7 +483,7 @@ public class ModerationCommands {
                 .queue(
                         success -> {
 
-                            analytics.recordAction(ActionType.BAN, event.getUser(), targetUser, reason, deleteDays, 0);
+                            analytics.recordAction(event.getGuild().getId(), ActionType.BAN, event.getUser(), targetUser, reason, deleteDays, 0);
 
                             EmbedBuilder banEmbed = new EmbedBuilder()
                                     .setTitle("🔨 User Banned")
@@ -571,7 +569,7 @@ public class ModerationCommands {
 
         guild.kick(targetMember).reason(reason).queue(
                 success -> {
-                    analytics.recordAction(ActionType.KICK, event.getUser(), targetUser, reason, 0, 0);
+                    analytics.recordAction(event.getGuild().getId(), ActionType.KICK, event.getUser(), targetUser, reason, 0, 0);
 
                     EmbedBuilder kickEmbed = new EmbedBuilder()
                             .setTitle("👢 User Kicked")
@@ -644,7 +642,7 @@ public class ModerationCommands {
             guild.unban(bannedUser).reason(reason).queue(
                     success -> {
 
-                        analytics.recordAction(ActionType.UNBAN, event.getUser(), bannedUser, reason, 0, 0);
+                        analytics.recordAction(event.getGuild().getId(), ActionType.UNBAN, event.getUser(), bannedUser, reason, 0, 0);
 
                         EmbedBuilder unbanEmbed = new EmbedBuilder()
                                 .setTitle("🔓 User Unbanned")
@@ -691,7 +689,7 @@ public class ModerationCommands {
         
         dataService.saveCommandLog(event.getUser().getId(), event.getUser().getName(), event.getName());
 
-        List<ModAction> history = dataService.getBanUnbanHistory(userId);
+        List<ModAction> history = dataService.getBanUnbanHistory(guild.getId(), userId);
 
         if (history.isEmpty()) {
             EmbedBuilder noHistoryEmbed = new EmbedBuilder()
@@ -706,11 +704,11 @@ public class ModerationCommands {
 
         StringBuilder historyText = new StringBuilder();
         for (ModAction action : history) {
-            String actionEmoji = action.getActionType().name().equals("BAN") ? "🔨" : "🔓";
-            historyText.append(actionEmoji).append(" **").append(action.getActionType().name()).append("**\n");
-            historyText.append("└─ **Moderator:** ").append(action.getModeratorName())
-                    .append(" (ID: ").append(action.getModeratorId()).append(")\n");
-            historyText.append("└─ **Reason:** ").append(action.getReason()).append("\n");
+            String actionEmoji = action.actionType().name().equals("BAN") ? "🔨" : "🔓";
+            historyText.append(actionEmoji).append(" **").append(action.actionType().name()).append("**\n");
+            historyText.append("└─ **Moderator:** ").append(action.moderatorName())
+                    .append(" (ID: ").append(action.moderatorId()).append(")\n");
+            historyText.append("└─ **Reason:** ").append(action.reason()).append("\n");
             historyText.append("└─ **Date:** ").append(action.getFormattedDate()).append("\n\n");
         }
 

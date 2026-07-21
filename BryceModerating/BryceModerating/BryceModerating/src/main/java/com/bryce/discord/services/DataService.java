@@ -5,8 +5,6 @@ import com.bryce.discord.models.ModAction;
 import com.bryce.discord.analytics.ActionType;
 import net.dv8tion.jda.api.entities.Guild;
 
-import java.io.File;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.*;
@@ -181,17 +179,19 @@ public class DataService {
         return loadWarnRecords();
     }
 
-    public List<WarnRecord> getWarningsForUser(String userId) {
+    public List<WarnRecord> getWarningsForUser(String guildId, String userId) {
         try {
             return DatabaseManager.executeWithRetry(conn -> {
                 List<WarnRecord> records = new ArrayList<>();
-                String sql = "SELECT userId, moderatorId, reason, timestamp FROM warnings WHERE userId = ?";
+                String sql = "SELECT guildId, userId, moderatorId, reason, timestamp FROM warnings WHERE userId = ? AND guildId = ?";
 
                 try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                     pstmt.setString(1, userId);
+                    pstmt.setString(2, guildId);
                     try (ResultSet rs = pstmt.executeQuery()) {
                         while (rs.next()) {
                             WarnRecord record = new WarnRecord(
+                                    nullToEmpty(rs.getString("guildId")),
                                     rs.getString("userId"),
                                     rs.getString("moderatorId"),
                                     rs.getString("reason"),
@@ -209,14 +209,15 @@ public class DataService {
         }
     }
 
-    public void deleteWarningsForUser(String userId) {
+    public void deleteWarningsForUser(String guildId, String userId) {
         try {
             DatabaseManager.executeWithRetry(conn -> {
-                String sql = "DELETE FROM warnings WHERE userId = ?";
+                String sql = "DELETE FROM warnings WHERE userId = ? AND guildId = ?";
                 try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                     pstmt.setString(1, userId);
+                    pstmt.setString(2, guildId);
                     int rows = pstmt.executeUpdate();
-                    System.out.println("Deleted " + rows + " warnings for userId: " + userId);
+                    System.out.println("Deleted " + rows + " warnings for userId: " + userId + " guildId: " + guildId);
                 }
                 return null;
             });
@@ -228,15 +229,17 @@ public class DataService {
     public void saveWarnRecord(WarnRecord warn) {
         try {
             DatabaseManager.executeWithRetry(conn -> {
-                String sql = "INSERT INTO warnings (userId, moderatorId, reason, timestamp) VALUES (?, ?, ?, ?)";
+                String sql = "INSERT INTO warnings (guildId, userId, moderatorId, reason, timestamp) VALUES (?, ?, ?, ?, ?)";
                 try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                    pstmt.setString(1, warn.getUserId());
-                    pstmt.setString(2, warn.getModeratorId());
-                    pstmt.setString(3, warn.getReason());
-                    pstmt.setLong(4, warn.getTimestamp());
+                    pstmt.setString(1, warn.guildId());
+                    pstmt.setString(2, warn.userId());
+                    pstmt.setString(3, warn.moderatorId());
+                    pstmt.setString(4, warn.reason());
+                    pstmt.setLong(5, warn.timestamp());
 
                     if (DEBUG_MODE) {
-                        System.out.println("[DEBUG] Saving warning to DB for userId=" + warn.getUserId());
+                        System.out.println("[DEBUG] Saving warning to DB for guildId=" + warn.guildId()
+                                + " userId=" + warn.userId());
                     }
                     pstmt.executeUpdate();
                 }
@@ -251,13 +254,14 @@ public class DataService {
         try {
             return DatabaseManager.executeWithRetry(conn -> {
                 List<WarnRecord> records = new ArrayList<>();
-                String sql = "SELECT userId, moderatorId, reason, timestamp FROM warnings";
+                String sql = "SELECT guildId, userId, moderatorId, reason, timestamp FROM warnings";
 
                 try (PreparedStatement pstmt = conn.prepareStatement(sql);
                      ResultSet rs = pstmt.executeQuery()) {
 
                     while (rs.next()) {
                         WarnRecord record = new WarnRecord(
+                                nullToEmpty(rs.getString("guildId")),
                                 rs.getString("userId"),
                                 rs.getString("moderatorId"),
                                 rs.getString("reason"),
@@ -277,18 +281,19 @@ public class DataService {
     public void saveModerationAnalytics(ModAction action) {
         try {
             DatabaseManager.executeWithRetry(conn -> {
-                String sql = "INSERT INTO moderation_analytics (action, moderatorId, moderatorName, targetId, targetName, reason, timestamp, duration, count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                String sql = "INSERT INTO moderation_analytics (guildId, action, moderatorId, moderatorName, targetId, targetName, reason, timestamp, duration, count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
                 try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                    pstmt.setString(1, action.getActionType().name());
-                    pstmt.setString(2, action.getModeratorId());
-                    pstmt.setString(3, action.getModeratorName());
-                    pstmt.setString(4, action.getTargetId());
-                    pstmt.setString(5, action.getTargetName());
-                    pstmt.setString(6, action.getReason());
-                    pstmt.setLong(7, action.getTimestamp());
-                    pstmt.setInt(8, action.getDuration());
-                    pstmt.setInt(9, action.getCount());
+                    pstmt.setString(1, action.guildId());
+                    pstmt.setString(2, action.actionType().name());
+                    pstmt.setString(3, action.moderatorId());
+                    pstmt.setString(4, action.moderatorName());
+                    pstmt.setString(5, action.targetId());
+                    pstmt.setString(6, action.targetName());
+                    pstmt.setString(7, action.reason());
+                    pstmt.setLong(8, action.timestamp());
+                    pstmt.setInt(9, action.duration());
+                    pstmt.setInt(10, action.count());
 
                     pstmt.executeUpdate();
                 }
@@ -303,13 +308,14 @@ public class DataService {
         try {
             return DatabaseManager.executeWithRetry(conn -> {
                 List<ModAction> actions = new ArrayList<>();
-                String sql = "SELECT action, moderatorId, moderatorName, targetId, targetName, reason, timestamp, duration, count FROM moderation_analytics";
+                String sql = "SELECT guildId, action, moderatorId, moderatorName, targetId, targetName, reason, timestamp, duration, count FROM moderation_analytics";
 
                 try (PreparedStatement pstmt = conn.prepareStatement(sql);
                      ResultSet rs = pstmt.executeQuery()) {
 
                     while (rs.next()) {
                         ModAction action = new ModAction(
+                                nullToEmpty(rs.getString("guildId")),
                                 ActionType.valueOf(rs.getString("action")),
                                 rs.getString("moderatorId") != null ? rs.getString("moderatorId") : "unknown",
                                 rs.getString("moderatorName") != null ? rs.getString("moderatorName") : "Unknown",
@@ -470,19 +476,21 @@ public class DataService {
         }
     }
 
-    public List<ModAction> getBanUnbanHistory(String targetUserId) {
+    public List<ModAction> getBanUnbanHistory(String guildId, String targetUserId) {
         try {
             return DatabaseManager.executeWithRetry(conn -> {
                 List<ModAction> actions = new ArrayList<>();
-                String sql = "SELECT action, moderatorId, moderatorName, targetId, targetName, reason, timestamp, duration, count FROM moderation_analytics " +
-                           "WHERE targetId = ? AND (action = 'BAN' OR action = 'UNBAN') " +
+                String sql = "SELECT guildId, action, moderatorId, moderatorName, targetId, targetName, reason, timestamp, duration, count FROM moderation_analytics " +
+                           "WHERE targetId = ? AND guildId = ? AND (action = 'BAN' OR action = 'UNBAN') " +
                            "ORDER BY timestamp DESC";
 
                 try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                     pstmt.setString(1, targetUserId);
+                    pstmt.setString(2, guildId);
                     try (ResultSet rs = pstmt.executeQuery()) {
                         while (rs.next()) {
                             ModAction action = new ModAction(
+                                    nullToEmpty(rs.getString("guildId")),
                                     ActionType.valueOf(rs.getString("action")),
                                     rs.getString("moderatorId") != null ? rs.getString("moderatorId") : "unknown",
                                     rs.getString("moderatorName") != null ? rs.getString("moderatorName") : "Unknown",
@@ -557,6 +565,10 @@ public class DataService {
             e.printStackTrace();
             return new HashMap<>();
         }
+    }
+
+    private static String nullToEmpty(String value) {
+        return value != null ? value : "";
     }
 }
 

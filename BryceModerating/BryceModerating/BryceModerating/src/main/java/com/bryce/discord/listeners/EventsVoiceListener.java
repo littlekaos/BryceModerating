@@ -1,13 +1,10 @@
 package com.bryce.discord.listeners;
 
-import com.bryce.discord.config.EventsServerConfig;
 import com.bryce.discord.services.VoiceChannelManager;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import java.util.Arrays;
-import java.util.List;
 
 public class EventsVoiceListener extends ListenerAdapter {
     private final VoiceChannelManager channelManager;
@@ -68,10 +65,16 @@ public class EventsVoiceListener extends ListenerAdapter {
     }
 
     private boolean isManagedVoiceChannel(String guildId, String channelId) {
-        // This assumes VoiceChannelDatabase has a getManagedVcIds method
-        // If it doesn't exist, you'll need to add it to VoiceChannelDatabase class
-        // For now, we're bypassing this check
-        return true;
+        String managed = channelManager.getEventsServerConfig().getManagedVcIds(guildId);
+        if (managed == null || managed.isBlank()) {
+            return false;
+        }
+        for (String id : managed.split(",")) {
+            if (channelId.equals(id.trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void handleVoiceLeave(GuildVoiceUpdateEvent event) {

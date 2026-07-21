@@ -17,7 +17,6 @@ import net.dv8tion.jda.api.entities.channel.ChannelType;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ModerationCommandManager extends ListenerAdapter {
     private final DataService dataService;
@@ -173,7 +172,7 @@ public class ModerationCommandManager extends ListenerAdapter {
         globalCommands.add(Commands.slash("purge", "Delete multiple messages from the channel")
                 .addOption(OptionType.INTEGER, "amount", "Number of messages to delete (1-1000)", true)
                 .addOption(OptionType.USER, "user", "Optional: Delete only messages from this user", false)
-                .setDefaultPermissions(DefaultMemberPermissions.ENABLED));
+                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MESSAGE_MANAGE)));
 
         globalCommands.add(Commands.slash("restrict", "Add a restriction to a channel")
                 .addOptions(new OptionData(OptionType.CHANNEL, "channel", "The channel to restrict", true)

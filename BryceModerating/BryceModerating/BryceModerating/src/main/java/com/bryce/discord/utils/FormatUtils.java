@@ -6,57 +6,32 @@ import java.awt.Color;
 
 public class FormatUtils {
     public static String formatActionType(ActionType type) {
-        switch (type) {
-            case WARN:
-                return "Warning";
-            case MUTE:
-                return "Mute";
-            case UNMUTE:
-                return "Unmute";
-            case TIMEOUT:
-                return "Timeout";
-            case UNTIMEOUT:
-                return "Untimeout";
-            case BAN:
-                return "Ban";
-            case UNBAN:
-                return "Unban";
-            case KICK:
-                return "Kick";
-            case PURGE:
-                return "Purge";
-            case MESSAGE_DELETE:
-                return "Message Delete";
-            default:
-                return type.toString();
-        }
+        return switch (type) {
+            case WARN -> "Warning";
+            case MUTE -> "Mute";
+            case UNMUTE -> "Unmute";
+            case TIMEOUT -> "Timeout";
+            case UNTIMEOUT -> "Untimeout";
+            case BAN -> "Ban";
+            case UNBAN -> "Unban";
+            case KICK -> "Kick";
+            case PURGE -> "Purge";
+            case MESSAGE_DELETE -> "Message Delete";
+            default -> type.toString();
+        };
     }
 
     public static Color getColorForActionType(ActionType type) {
-        switch (type) {
-            case WARN:
-                return Color.YELLOW;
-            case MUTE:
-                return new Color(128, 0, 128);
-            case UNMUTE:
-                return Color.GREEN;
-            case TIMEOUT:
-                return new Color(255, 165, 0);
-            case UNTIMEOUT:
-                return Color.GREEN;
-            case BAN:
-                return Color.RED;
-            case UNBAN:
-                return Color.GREEN;
-            case KICK:
-                return Color.ORANGE;
-            case PURGE:
-                return Color.BLUE;
-            case MESSAGE_DELETE:
-                return Color.ORANGE;
-            default:
-                return Color.GRAY;
-        }
+        return switch (type) {
+            case WARN -> Color.YELLOW;
+            case MUTE -> new Color(128, 0, 128);
+            case UNMUTE, UNTIMEOUT, UNBAN -> Color.GREEN;
+            case TIMEOUT -> new Color(255, 165, 0);
+            case BAN -> Color.RED;
+            case KICK, MESSAGE_DELETE -> Color.ORANGE;
+            case PURGE -> Color.BLUE;
+            default -> Color.GRAY;
+        };
     }
 
     public static long parseDurationToMinutes(String duration) {

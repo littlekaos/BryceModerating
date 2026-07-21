@@ -9,10 +9,10 @@ import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
-import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.buttons.Button;
+import net.dv8tion.jda.api.components.selections.StringSelectMenu;
 
 import java.awt.Color;
 import java.time.Instant;
@@ -247,10 +247,10 @@ public class StaffSetupService {
                 .setTimestamp(Instant.now());
     }
 
-    public ActionRow setupButtons(String guildId) {
+    public ActionRow setupButtons(String guildId, String userId) {
         return ActionRow.of(
-                Button.success(BTN_YES_PREFIX + guildId, "Yes — set it up"),
-                Button.danger(BTN_NO_PREFIX + guildId, "No thanks")
+                Button.success(BTN_YES_PREFIX + guildId + ":" + userId, "Yes — set it up"),
+                Button.danger(BTN_NO_PREFIX + guildId + ":" + userId, "No thanks")
         );
     }
 
@@ -272,10 +272,9 @@ public class StaffSetupService {
                 .setTimestamp(Instant.now());
     }
 
-    public ActionRow voiceStyleSelect(String guildId) {
+    public ActionRow voiceStyleSelect(String guildId, String userId) {
         return ActionRow.of(
-                net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
-                        .create(SELECT_VOICE_STYLE_PREFIX + guildId)
+                StringSelectMenu.create(SELECT_VOICE_STYLE_PREFIX + guildId + ":" + userId)
                         .setPlaceholder("Choose lobby naming style")
                         .addOption("Solos, Duos, Trios, Squads", "named", "Named lobbies (1–4 players)")
                         .addOption("1s, 2s, 3s, 4s", "numbered", "Numbered lobbies (no 6mans)")
@@ -296,10 +295,9 @@ public class StaffSetupService {
                 .setTimestamp(Instant.now());
     }
 
-    public ActionRow voicePrefixSelect(String guildId, VoiceLobbyStyle style) {
+    public ActionRow voicePrefixSelect(String guildId, String userId, VoiceLobbyStyle style) {
         return ActionRow.of(
-                net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
-                        .create(SELECT_VOICE_PREFIX_PREFIX + guildId + ":" + style.selectValue())
+                StringSelectMenu.create(SELECT_VOICE_PREFIX_PREFIX + guildId + ":" + userId + ":" + style.selectValue())
                         .setPlaceholder("Create at the start of lobby names?")
                         .addOption("Yes — Create … VC", "create", "e.g. Create Solos VC")
                         .addOption("No — … VC only", "plain", "e.g. Solos VC")
@@ -317,61 +315,38 @@ public class StaffSetupService {
         dataService.setGuildSetting(guild.getId(), SETUP_STATUS_KEY, STATUS_PENDING);
         ScanResult scan = scan(guild);
         event.replyEmbeds(buildSetupEmbed(guild, scan).build())
-                .addComponents(setupButtons(guild.getId()))
+                .addComponents(setupButtons(guild.getId(), event.getUser().getId()))
                 .setEphemeral(true)
                 .queue();
     }
 
     /**
-     * DM the inviter; if that fails, ping them in a server channel.
+     * DM the inviter with setup buttons bound to their user ID.
+     * Does not post buttons in public channels (use /adminsetup if DMs are closed).
      */
     public void offerSetup(Guild guild, User inviter) {
         dataService.setGuildSetting(guild.getId(), SETUP_STATUS_KEY, STATUS_PENDING);
         ScanResult scan = scan(guild);
         EmbedBuilder embed = buildSetupEmbed(guild, scan);
-        ActionRow buttons = setupButtons(guild.getId());
 
         if (inviter == null) {
-            postServerPing(guild, null, embed, buttons);
+            // Do not post setup buttons publicly — wait for an admin to run /adminsetup
+            System.err.println("[StaffSetup] No inviter for " + guild.getName()
+                    + " — skipping public prompt; use /adminsetup");
             return;
         }
+
+        ActionRow buttons = setupButtons(guild.getId(), inviter.getId());
 
         inviter.openPrivateChannel().queue(
                 channel -> channel.sendMessageEmbeds(embed.build()).setComponents(buttons).queue(
                         success -> System.out.println("[StaffSetup] DM sent to " + inviter.getName() + " for " + guild.getName()),
-                        error -> postServerPing(guild, inviter, embed, buttons)
+                        error -> System.err.println("[StaffSetup] Could not DM " + inviter.getName()
+                                + " for " + guild.getName() + " — they can run /adminsetup instead")
                 ),
-                error -> postServerPing(guild, inviter, embed, buttons)
+                error -> System.err.println("[StaffSetup] Could not open DM to " + inviter.getName()
+                        + " for " + guild.getName() + " — they can run /adminsetup instead")
         );
-    }
-
-    private void postServerPing(Guild guild, User inviter, EmbedBuilder embed, ActionRow buttons) {
-        GuildMessageChannel target = findAnnounceChannel(guild);
-        if (target == null) {
-            System.err.println("[StaffSetup] No channel to announce setup in " + guild.getName());
-            return;
-        }
-
-        String mention = inviter != null ? inviter.getAsMention() + " " : "";
-        target.sendMessage(mention + "I couldn't DM you — use the buttons below to finish admin setup.")
-                .addEmbeds(embed.build())
-                .setComponents(buttons)
-                .queue(
-                        success -> System.out.println("[StaffSetup] Ping posted in #" + target.getName()),
-                        error -> System.err.println("[StaffSetup] Failed to post ping: " + error.getMessage())
-                );
-    }
-
-    private GuildMessageChannel findAnnounceChannel(Guild guild) {
-        if (guild.getSystemChannel() != null && guild.getSelfMember().hasPermission(guild.getSystemChannel(), Permission.MESSAGE_SEND)) {
-            return guild.getSystemChannel();
-        }
-        for (TextChannel channel : guild.getTextChannels()) {
-            if (guild.getSelfMember().hasPermission(channel, Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL)) {
-                return channel;
-            }
-        }
-        return null;
     }
 
     public CompletableFuture<String> applySetup(Guild guild, VoiceLobbyStyle voiceStyle, boolean withCreatePrefix) {
@@ -609,7 +584,7 @@ public class StaffSetupService {
         CompletableFuture<List<Role>> future = new CompletableFuture<>();
         guild.createRole()
                 .setName(createName)
-                .setMentionable(true)
+                .setMentionable(false)
                 .setPermissions(raw)
                 .queue(
                         role -> future.complete(List.of(role)),

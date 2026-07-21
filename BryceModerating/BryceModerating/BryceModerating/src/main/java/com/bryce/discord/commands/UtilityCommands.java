@@ -40,6 +40,11 @@ public class UtilityCommands {
     }
 
     public void handlePurge(SlashCommandInteractionEvent event) {
+        if (!configService.hasModeratorPermissions(event.getMember())) {
+            event.reply("You don't have permission to use this command.").setEphemeral(true).queue();
+            return;
+        }
+
         int amount = event.getOption("amount").getAsInt();
         User targetUser = event.getOption("user") != null ? event.getOption("user").getAsUser() : null;
 

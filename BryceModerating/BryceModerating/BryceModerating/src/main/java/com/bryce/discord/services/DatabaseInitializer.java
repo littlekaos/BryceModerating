@@ -1,14 +1,6 @@
 package com.bryce.discord.services;
 
-import com.bryce.discord.models.WarnRecord;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.ObjectInputStream;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.util.List;
-import java.util.Map;
 
 public class DatabaseInitializer {
     public static void initializeDatabase() {
@@ -16,6 +8,7 @@ public class DatabaseInitializer {
 
             String warningsTable = "CREATE TABLE IF NOT EXISTS warnings (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "guildId TEXT," +
                     "userId TEXT NOT NULL," +
                     "moderatorId TEXT," +
                     "reason TEXT," +
@@ -24,6 +17,7 @@ public class DatabaseInitializer {
 
             String analyticsTable = "CREATE TABLE IF NOT EXISTS moderation_analytics (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "guildId TEXT," +
                     "action TEXT NOT NULL," +
                     "moderatorId TEXT," +
                     "moderatorName TEXT," +
@@ -175,12 +169,23 @@ public class DatabaseInitializer {
             conn.createStatement().execute(serverSetupTable);
             conn.createStatement().execute(channelRestrictionsTable);
 
-            System.out.println("[DatabaseInitializer] Database tables initialized.");
+            // Migrate existing DBs that predate guild scoping
+            ensureColumn(conn, "warnings", "guildId", "TEXT");
+            ensureColumn(conn, "moderation_analytics", "guildId", "TEXT");
 
             System.out.println("[DatabaseInitializer] Database tables initialized.");
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private static void ensureColumn(Connection conn, String table, String column, String type) {
+        try {
+            conn.createStatement().execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + type);
+            System.out.println("[DatabaseInitializer] Added column " + table + "." + column);
+        } catch (Exception ignored) {
+            // Column already exists
         }
     }
 }

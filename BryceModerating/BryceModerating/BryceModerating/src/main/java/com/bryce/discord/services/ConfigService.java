@@ -20,8 +20,19 @@ public class ConfigService {
     private final Set<String> moderatorRoles = new HashSet<>();
     private final Set<String> adminRoles = new HashSet<>();
 
-    /** Same permission set applied to the Moderator role during /adminsetup. */
+    /** Full permission set applied to the Moderator role during /adminsetup. */
     private static final EnumSet<Permission> MODERATOR_DISCORD_PERMISSIONS = buildModeratorDiscordPermissions();
+
+    /**
+     * Permissions that grant bot moderation access via Discord (not via registered roles).
+     * Intentionally narrow so nickname / move / audit-log alone cannot ban/kick.
+     */
+    private static final EnumSet<Permission> MODERATOR_ACCESS_PERMISSIONS = EnumSet.of(
+            Permission.BAN_MEMBERS,
+            Permission.KICK_MEMBERS,
+            Permission.MODERATE_MEMBERS,
+            Permission.MESSAGE_MANAGE
+    );
 
     private static class CachedValue {
         final boolean value;
@@ -48,13 +59,13 @@ public class ConfigService {
             return false;
         }
 
-        String cacheKey = "mod:" + member.getId();
+        String cacheKey = "mod:" + member.getGuild().getId() + ":" + member.getId();
         CachedValue cached = permissionCache.get(cacheKey);
         if (cached != null && !cached.isExpired(PERMISSION_CACHE_TTL_MILLIS)) {
             return cached.value;
         }
 
-        // Registered mod role OR Discord mod perms (any of the Moderator role set) OR admin
+        // Registered mod role OR real Discord mod perms OR admin
         boolean hasPermissions = hasAdminPermissions(member)
                 || hasRegisteredModeratorRole(member)
                 || hasModeratorDiscordPermissions(member);
@@ -68,7 +79,7 @@ public class ConfigService {
             return false;
         }
 
-        String cacheKey = "admin:" + member.getId();
+        String cacheKey = "admin:" + member.getGuild().getId() + ":" + member.getId();
         CachedValue cached = permissionCache.get(cacheKey);
         if (cached != null && !cached.isExpired(PERMISSION_CACHE_TTL_MILLIS)) {
             return cached.value;
@@ -90,8 +101,16 @@ public class ConfigService {
         return member.getRoles().stream().anyMatch(role -> adminRoles.contains(role.getId()));
     }
 
+    /** Staff who may post in restricted channels: Discord/registered admins, or registered mod roles. */
+    public boolean isExemptFromChannelRestrictions(Member member) {
+        if (member == null) {
+            return false;
+        }
+        return hasAdminPermissions(member) || hasRegisteredModeratorRole(member);
+    }
+
     private boolean hasModeratorDiscordPermissions(Member member) {
-        return MODERATOR_DISCORD_PERMISSIONS.stream().anyMatch(member::hasPermission);
+        return MODERATOR_ACCESS_PERMISSIONS.stream().anyMatch(member::hasPermission);
     }
 
     public static EnumSet<Permission> getModeratorDiscordPermissions() {
@@ -128,9 +147,15 @@ public class ConfigService {
         }
     }
 
+    /** Clears cached permission results for a member in a specific guild. */
+    public void clearPermissionCache(String guildId, String memberId) {
+        permissionCache.remove("mod:" + guildId + ":" + memberId);
+        permissionCache.remove("admin:" + guildId + ":" + memberId);
+    }
+
+    /** Clears cached permission results for a member across all guilds. */
     public void clearPermissionCache(String memberId) {
-        permissionCache.remove("mod:" + memberId);
-        permissionCache.remove("admin:" + memberId);
+        permissionCache.keySet().removeIf(key -> key.endsWith(":" + memberId));
     }
 
     public void addNoMessageChannel(String channelId) {

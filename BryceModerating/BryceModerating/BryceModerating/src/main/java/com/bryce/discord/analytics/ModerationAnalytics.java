@@ -22,9 +22,10 @@ public class ModerationAnalytics {
         System.out.println("ModerationAnalytics initialized (database-backed)");
     }
 
-    public void recordAction(ActionType actionType, User moderator, User target,
+    public void recordAction(String guildId, ActionType actionType, User moderator, User target,
                              String reason, int duration, int count) {
         ModAction action = new ModAction(
+                guildId,
                 actionType,
                 moderator.getId(),
                 moderator.getName(),
@@ -47,8 +48,9 @@ public class ModerationAnalytics {
         dataService.saveModerationAnalytics(action);
     }
 
-    public void recordPurge(User moderator, int messageCount, String channelName) {
+    public void recordPurge(String guildId, User moderator, int messageCount, String channelName) {
         ModAction action = new ModAction(
+                guildId,
                 ActionType.PURGE,
                 moderator.getId(),
                 moderator.getName(),
@@ -73,7 +75,7 @@ public class ModerationAnalytics {
 
         long cutoffTime = System.currentTimeMillis() - (days * 24L * 60L * 60L * 1000L);
         return actions.stream()
-                .filter(action -> action.getTimestamp() >= cutoffTime)
+                .filter(action -> action.timestamp() >= cutoffTime)
                 .collect(Collectors.toList());
     }
 
@@ -84,7 +86,7 @@ public class ModerationAnalytics {
 
         long cutoffTime = System.currentTimeMillis() - (days * 24L * 60L * 60L * 1000L);
         return moderatorActions.stream()
-                .filter(action -> action.getTimestamp() >= cutoffTime)
+                .filter(action -> action.timestamp() >= cutoffTime)
                 .collect(Collectors.toList());
     }
 
@@ -95,7 +97,7 @@ public class ModerationAnalytics {
 
         long cutoffTime = System.currentTimeMillis() - (days * 24L * 60L * 60L * 1000L);
         return targetActions.stream()
-                .filter(action -> action.getTimestamp() >= cutoffTime)
+                .filter(action -> action.timestamp() >= cutoffTime)
                 .collect(Collectors.toList());
     }
 
@@ -106,7 +108,7 @@ public class ModerationAnalytics {
 
         long cutoffTime = System.currentTimeMillis() - (days * 24L * 60L * 60L * 1000L);
         return typeActions.stream()
-                .filter(action -> action.getTimestamp() >= cutoffTime)
+                .filter(action -> action.timestamp() >= cutoffTime)
                 .collect(Collectors.toList());
     }
 
@@ -117,9 +119,9 @@ public class ModerationAnalytics {
         Map<String, String> moderatorNames = new HashMap<>();
 
         for (ModAction action : periodActions) {
-            moderatorCounts.put(action.getModeratorId(),
-                    moderatorCounts.getOrDefault(action.getModeratorId(), 0) + 1);
-            moderatorNames.put(action.getModeratorId(), action.getModeratorName());
+            moderatorCounts.put(action.moderatorId(),
+                    moderatorCounts.getOrDefault(action.moderatorId(), 0) + 1);
+            moderatorNames.put(action.moderatorId(), action.moderatorName());
         }
 
         return moderatorCounts.entrySet().stream()
@@ -140,11 +142,11 @@ public class ModerationAnalytics {
         Map<String, String> targetNames = new HashMap<>();
 
         for (ModAction action : periodActions) {
-            if (action.getTargetId().equals("0")) continue;
+            if (action.targetId().equals("0")) continue;
 
-            targetCounts.put(action.getTargetId(),
-                    targetCounts.getOrDefault(action.getTargetId(), 0) + 1);
-            targetNames.put(action.getTargetId(), action.getTargetName());
+            targetCounts.put(action.targetId(),
+                    targetCounts.getOrDefault(action.targetId(), 0) + 1);
+            targetNames.put(action.targetId(), action.targetName());
         }
 
         return targetCounts.entrySet().stream()
@@ -164,8 +166,8 @@ public class ModerationAnalytics {
         Map<ActionType, Integer> typeCounts = new HashMap<>();
 
         for (ModAction action : periodActions) {
-            typeCounts.put(action.getActionType(),
-                    typeCounts.getOrDefault(action.getActionType(), 0) + 1);
+            typeCounts.put(action.actionType(),
+                    typeCounts.getOrDefault(action.actionType(), 0) + 1);
         }
 
         return typeCounts;
@@ -184,5 +186,3 @@ public class ModerationAnalytics {
         return dayCounts;
     }
 }
-
-

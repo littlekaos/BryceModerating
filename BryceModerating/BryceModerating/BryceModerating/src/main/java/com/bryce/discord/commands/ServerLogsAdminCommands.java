@@ -8,8 +8,8 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 
@@ -116,7 +116,7 @@ public class ServerLogsAdminCommands extends ListenerAdapter {
             }
             List<Guild> guilds = sortedGuilds(api);
             int totalPages = Math.max(1, (int) Math.ceil(guilds.size() / (double) SERVERS_PER_PAGE));
-            page = Math.max(0, Math.min(page, totalPages - 1));
+            page = Math.clamp(page, 0, totalPages - 1);
 
             event.getHook().editOriginalEmbeds(buildServersEmbed(guilds, page, currentGuildId).build())
                     .setComponents(serversButtons(ownerId, page, totalPages))

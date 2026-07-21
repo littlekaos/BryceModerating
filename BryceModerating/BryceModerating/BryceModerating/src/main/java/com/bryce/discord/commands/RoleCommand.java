@@ -6,6 +6,7 @@ import com.bryce.discord.services.ConfigService;
 import com.bryce.discord.services.DataService;
 import com.bryce.discord.services.LoggingService;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
@@ -69,7 +70,7 @@ public class RoleCommand {
         }
 
         if (!canManageRole(moderator, targetRole, guild)) {
-            event.getHook().sendMessage("You cannot add this role because it's equal to or higher than your highest role.").queue();
+            event.getHook().sendMessage("You cannot add this role (missing hierarchy, bot can't assign it, or it's a privileged role).").queue();
             return;
         }
 
@@ -88,7 +89,7 @@ public class RoleCommand {
                     guild.addRoleToMember(targetMember, targetRole).queue(
                             success -> {
                                 logRoleAction(guild, "added", moderator.getUser(), targetUser, targetRole);
-                                analytics.recordAction(ActionType.ROLE_ADD, moderator.getUser(), targetUser, "Added role " + targetRole.getName(), 0, 0);
+                                analytics.recordAction(guild.getId(), ActionType.ROLE_ADD, moderator.getUser(), targetUser, "Added role " + targetRole.getName(), 0, 0);
 
                                 EmbedBuilder embed = new EmbedBuilder()
                                         .setTitle("Role Added")
@@ -125,7 +126,7 @@ public class RoleCommand {
         }
 
         if (!canManageRole(moderator, targetRole, guild)) {
-            event.getHook().sendMessage("You cannot remove this role because it's equal to or higher than your highest role.").queue();
+            event.getHook().sendMessage("You cannot remove this role (missing hierarchy, bot can't manage it, or it's a privileged role).").queue();
             return;
         }
 
@@ -144,7 +145,7 @@ public class RoleCommand {
                     guild.removeRoleFromMember(targetMember, targetRole).queue(
                             success -> {
                                 logRoleAction(guild, "removed", moderator.getUser(), targetUser, targetRole);
-                                analytics.recordAction(ActionType.ROLE_REMOVE, moderator.getUser(), targetUser, "Removed role " + targetRole.getName(), 0, 0);
+                                analytics.recordAction(guild.getId(), ActionType.ROLE_REMOVE, moderator.getUser(), targetUser, "Removed role " + targetRole.getName(), 0, 0);
 
                                 EmbedBuilder embed = new EmbedBuilder()
                                         .setTitle("Role Removed")
@@ -166,17 +167,34 @@ public class RoleCommand {
     }
 
     private boolean canManageRole(Member moderator, Role targetRole, Guild guild) {
-        if (configService.hasAdminPermissions(moderator)) {
+        if (targetRole.isPublicRole() || targetRole.isManaged()) {
+            return false;
+        }
+
+        // Privileged roles require Discord Administrator (registered bot-admin alone is not enough)
+        if (isPrivilegedRole(targetRole) && !moderator.hasPermission(Permission.ADMINISTRATOR)) {
+            return false;
+        }
+
+        if (!guild.getSelfMember().canInteract(targetRole)) {
+            return false;
+        }
+
+        // Discord Administrator may manage any role the bot can interact with
+        if (moderator.hasPermission(Permission.ADMINISTRATOR)) {
             return true;
         }
 
-        Role highestRole = moderator.getRoles().isEmpty() ? null : moderator.getRoles().get(0);
+        // Everyone else (including registered bot-admins) must outrank the role in Discord hierarchy
+        return moderator.canInteract(targetRole);
+    }
 
-        if (highestRole == null) {
-            return targetRole.equals(guild.getPublicRole());
-        }
-
-        return highestRole.getPosition() > targetRole.getPosition();
+    private static boolean isPrivilegedRole(Role role) {
+        return role.hasPermission(Permission.ADMINISTRATOR)
+                || role.hasPermission(Permission.MANAGE_ROLES)
+                || role.hasPermission(Permission.MANAGE_SERVER)
+                || role.hasPermission(Permission.BAN_MEMBERS)
+                || role.hasPermission(Permission.KICK_MEMBERS);
     }
 
     private void logRoleAction(Guild guild, String action, User moderator, User target, Role role) {

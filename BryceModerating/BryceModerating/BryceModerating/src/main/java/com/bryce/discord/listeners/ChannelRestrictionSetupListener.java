@@ -4,15 +4,16 @@ import com.bryce.discord.services.ConfigService;
 import com.bryce.discord.services.DataService;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu;
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
+import net.dv8tion.jda.api.components.actionrow.ActionRow;
+import net.dv8tion.jda.api.components.selections.EntitySelectMenu;
+import net.dv8tion.jda.api.components.selections.StringSelectMenu;
 
 import java.awt.Color;
 import java.time.Instant;
@@ -21,6 +22,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ChannelRestrictionSetupListener extends ListenerAdapter {
+    private static final String TYPE_SELECT_PREFIX = "restriction_type_select:";
+    private static final String CHANNEL_SELECT_PREFIX = "restriction_channel_select:";
+
     private final DataService dataService;
     private final ConfigService configService;
     private final Map<String, String> userRestrictionChoice = new ConcurrentHashMap<>();
@@ -34,12 +38,16 @@ public class ChannelRestrictionSetupListener extends ListenerAdapter {
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (!event.getName().equals("restrict-setup")) return;
 
-        if (!event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
+        if (event.getGuild() == null || event.getMember() == null
+                || !event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
             event.reply("❌ You need **Administrator** permissions to use this setup.").setEphemeral(true).queue();
             return;
         }
 
-        StringSelectMenu menu = StringSelectMenu.create("restriction_type_select")
+        String userId = event.getUser().getId();
+        String guildId = event.getGuild().getId();
+
+        StringSelectMenu menu = StringSelectMenu.create(TYPE_SELECT_PREFIX + guildId + ":" + userId)
                 .setPlaceholder("Select a restriction type")
                 .addOption("Media With Text", "MEDIA_WITH_TEXT", "Require media/links, text allowed")
                 .addOption("Media Only", "MEDIA_ONLY", "Only media/links allowed")
@@ -64,12 +72,20 @@ public class ChannelRestrictionSetupListener extends ListenerAdapter {
 
     @Override
     public void onStringSelectInteraction(StringSelectInteractionEvent event) {
-        if (!event.getComponentId().equals("restriction_type_select")) return;
+        if (!event.getComponentId().startsWith(TYPE_SELECT_PREFIX)) return;
+
+        if (!authorizeAdmin(event.getMember(), event.getComponentId(), event.getUser().getId(), event.getGuild() != null ? event.getGuild().getId() : null)) {
+            event.reply("❌ You need **Administrator** permissions to continue.").setEphemeral(true).queue();
+            return;
+        }
 
         String type = event.getValues().get(0);
-        userRestrictionChoice.put(event.getUser().getId(), type);
+        String sessionKey = event.getGuild().getId() + ":" + event.getUser().getId();
+        userRestrictionChoice.put(sessionKey, type);
 
-        EntitySelectMenu channelMenu = EntitySelectMenu.create("restriction_channel_select", EntitySelectMenu.SelectTarget.CHANNEL)
+        EntitySelectMenu channelMenu = EntitySelectMenu.create(
+                        CHANNEL_SELECT_PREFIX + event.getGuild().getId() + ":" + event.getUser().getId(),
+                        EntitySelectMenu.SelectTarget.CHANNEL)
                 .setPlaceholder("Select channel(s) to apply this restriction to")
                 .setChannelTypes(ChannelType.TEXT)
                 .setMinValues(1)
@@ -89,11 +105,17 @@ public class ChannelRestrictionSetupListener extends ListenerAdapter {
 
     @Override
     public void onEntitySelectInteraction(EntitySelectInteractionEvent event) {
-        if (!event.getComponentId().equals("restriction_channel_select")) return;
+        if (!event.getComponentId().startsWith(CHANNEL_SELECT_PREFIX)) return;
+
+        if (!authorizeAdmin(event.getMember(), event.getComponentId(), event.getUser().getId(), event.getGuild() != null ? event.getGuild().getId() : null)) {
+            event.reply("❌ You need **Administrator** permissions to continue.").setEphemeral(true).queue();
+            return;
+        }
 
         event.deferEdit().queue();
 
-        String type = userRestrictionChoice.remove(event.getUser().getId());
+        String sessionKey = event.getGuild().getId() + ":" + event.getUser().getId();
+        String type = userRestrictionChoice.remove(sessionKey);
         if (type == null) {
             event.getHook().sendMessage("❌ Session expired. Please start over with `/restrict-setup`.").setEphemeral(true).queue();
             return;
@@ -117,5 +139,14 @@ public class ChannelRestrictionSetupListener extends ListenerAdapter {
         event.getHook().editOriginalEmbeds(embed.build())
                 .setComponents(List.of())
                 .queue();
+    }
+
+    private boolean authorizeAdmin(Member member, String componentId, String userId, String guildId) {
+        if (member == null || guildId == null || !member.hasPermission(Permission.ADMINISTRATOR)) {
+            return false;
+        }
+        // componentId = prefix + guildId + ":" + userId
+        String expectedSuffix = guildId + ":" + userId;
+        return componentId.endsWith(expectedSuffix);
     }
 }

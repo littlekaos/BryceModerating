@@ -169,7 +169,7 @@ public class BryceModeratingBot {
                                 if (member.getRoles().contains(muteRole)) {
                                     guild.removeRoleFromMember(member, muteRole).queue(success -> {
                                         dataService.removeMute(guild.getId(), userId);
-                                        analytics.recordAction(ActionType.UNMUTE, jda.getSelfUser(), member.getUser(),
+                                        analytics.recordAction(guild.getId(), ActionType.UNMUTE, jda.getSelfUser(), member.getUser(),
                                                 "Automatic unmute after persistence check", 0, 0);
                                         System.out.println("[INFO] Automatically unmuted " + member.getUser().getName() + " in " + guild.getName());
                                     });

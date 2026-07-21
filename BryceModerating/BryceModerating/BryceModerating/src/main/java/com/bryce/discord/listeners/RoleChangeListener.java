@@ -31,12 +31,12 @@ public class RoleChangeListener extends ListenerAdapter {
 
     @Override
     public void onGuildMemberRoleAdd(@NotNull GuildMemberRoleAddEvent event) {
-        configService.clearPermissionCache(event.getMember().getId());
+        configService.clearPermissionCache(event.getGuild().getId(), event.getMember().getId());
     }
 
     @Override
     public void onGuildMemberRoleRemove(@NotNull GuildMemberRoleRemoveEvent event) {
-        configService.clearPermissionCache(event.getMember().getId());
+        configService.clearPermissionCache(event.getGuild().getId(), event.getMember().getId());
     }
 
     @Override

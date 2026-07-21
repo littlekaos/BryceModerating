@@ -30,7 +30,7 @@ public class ModerationMessageListener extends ListenerAdapter {
         if (event.getAuthor().isBot()) return;
 
         Member member = event.getMember();
-        if (member != null && (configService.hasAdminPermissions(member) || configService.hasModeratorPermissions(member))) {
+        if (member != null && configService.isExemptFromChannelRestrictions(member)) {
             return;
         }
 
@@ -47,7 +47,7 @@ public class ModerationMessageListener extends ListenerAdapter {
                 loggingService.sendWarningEmbed(event.getChannel().asTextChannel(),
                         "Images and links are required in this channel.", null);
 
-                analytics.recordAction(ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
+                analytics.recordAction(event.getGuild().getId(), ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
                         "Deleted message in Media-With-Text Channel", 0, 0);
 
                 return;
@@ -66,7 +66,7 @@ public class ModerationMessageListener extends ListenerAdapter {
                 loggingService.sendWarningEmbed(event.getChannel().asTextChannel(),
                         "Only images and links are allowed in this channel (no regular chat messages).", null);
 
-                analytics.recordAction(ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
+                analytics.recordAction(event.getGuild().getId(), ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
                         "Deleted message in Media-Only Channel", 0, 0);
 
                 return;
@@ -82,7 +82,7 @@ public class ModerationMessageListener extends ListenerAdapter {
                 loggingService.sendWarningEmbed(event.getChannel().asTextChannel(),
                         "Only images/screenshots are allowed in this channel (no text).", null);
 
-                analytics.recordAction(ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
+                analytics.recordAction(event.getGuild().getId(), ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
                         "Deleted message in Screenshot-Only Channel", 0, 0);
 
                 return;
@@ -93,7 +93,7 @@ public class ModerationMessageListener extends ListenerAdapter {
                 loggingService.sendWarningEmbed(event.getChannel().asTextChannel(),
                         "Only images/screenshots are allowed in this channel.", null);
 
-                analytics.recordAction(ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
+                analytics.recordAction(event.getGuild().getId(), ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
                         "Deleted non-image attachment in Screenshot-Only Channel", 0, 0);
 
                 return;
@@ -108,7 +108,7 @@ public class ModerationMessageListener extends ListenerAdapter {
             loggingService.sendWarningEmbed(event.getChannel().asTextChannel(),
                     "Messages are not allowed in this channel.", null);
 
-            analytics.recordAction(ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
+            analytics.recordAction(event.getGuild().getId(), ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
                     "Deleted message in No-Message Channel", 0, 0);
 
             return;
@@ -122,7 +122,7 @@ public class ModerationMessageListener extends ListenerAdapter {
                 loggingService.sendWarningEmbed(event.getChannel().asTextChannel(),
                         "Only text messages are allowed in this channel (no media, links, or attachments).", null);
 
-                analytics.recordAction(ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
+                analytics.recordAction(event.getGuild().getId(), ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
                         "Deleted media/link in Text-Only Channel", 0, 0);
 
                 return;
@@ -137,7 +137,7 @@ public class ModerationMessageListener extends ListenerAdapter {
                 loggingService.sendWarningEmbed(event.getChannel().asTextChannel(),
                         "Media and links are not allowed in this channel.", null);
 
-                analytics.recordAction(ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
+                analytics.recordAction(event.getGuild().getId(), ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
                         "Deleted media/link in No-Media Channel", 0, 0);
 
                 return;
@@ -151,7 +151,7 @@ public class ModerationMessageListener extends ListenerAdapter {
             loggingService.sendWarningEmbed(event.getChannel().asTextChannel(),
                     "No content is allowed in this channel.", null);
 
-            analytics.recordAction(ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
+            analytics.recordAction(event.getGuild().getId(), ActionType.MESSAGE_DELETE, event.getJDA().getSelfUser(), event.getAuthor(),
                     "Deleted message in No-Content Channel", 0, 0);
         }
     }
