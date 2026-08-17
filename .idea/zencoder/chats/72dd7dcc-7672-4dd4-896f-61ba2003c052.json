@@ -1,0 +1,89 @@
+{
+    "checksum": "10ed7257c4a91d57b2cafb7b5e00e3a2d669d0d1f3c41394e0d7fccf6b874b9d",
+    "data": {
+    "id": "72dd7dcc-7672-4dd4-896f-61ba2003c052",
+    "createdAt": 1771255807742,
+    "updatedAt": 1771255821626,
+    "title": "Merge and Clean modbot.db Files",
+    "messages": [
+        {
+            "id": "1cfbec96-d6ff-4c30-a9a3-b8f38249bf60",
+            "role": "user",
+            "content": [
+                {
+                    "type": "fileMention",
+                    "fileName": "Pasted image",
+                    "path": "C:\\Users\\bryce\\AppData\\Local\\Temp\\zencoder\\pasted\\files\\20260216102944-fvh8ru-image.png",
+                    "fsPath": "C:\\Users\\bryce\\AppData\\Local\\Temp\\zencoder\\pasted\\files\\20260216102944-fvh8ru-image.png",
+                    "contentType": "image/png",
+                    "webviewUri": "http://localhost/files/20260216102944-fvh8ru-image.png"
+                },
+                {
+                    "type": "text",
+                    "text": " can you remove the modbot.db thats by my pom.xml file? and then move everything to the other modbot.db?"
+                }
+            ],
+            "context": {
+                "attachedFiles": [
+                    {
+                        "path": "C:\\Users\\bryce\\AppData\\Local\\Temp\\zencoder\\pasted\\files\\20260216102944-fvh8ru-image.png",
+                        "fsPath": "C:\\Users\\bryce\\AppData\\Local\\Temp\\zencoder\\pasted\\files\\20260216102944-fvh8ru-image.png",
+                        "contentType": "image/png"
+                    }
+                ],
+                "currentFile": {
+                    "fsPath": "C:/Users/bryce/Documents/BryceModerating/BryceModerating/BryceModerating/BryceModerating/src/main/java/com/bryce/discord/BryceModeratingBot.java"
+                }
+            },
+            "createdAt": 1771255821626,
+            "isInternal": false,
+            "rawContent": {
+                "type": "doc",
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [
+                            {
+                                "type": "mention",
+                                "attrs": {
+                                    "label": "Pasted image",
+                                    "summary": null,
+                                    "description": null,
+                                    "type": "file",
+                                    "path": "C:\\Users\\bryce\\AppData\\Local\\Temp\\zencoder\\pasted\\files\\20260216102944-fvh8ru-image.png",
+                                    "fsPath": "C:\\Users\\bryce\\AppData\\Local\\Temp\\zencoder\\pasted\\files\\20260216102944-fvh8ru-image.png",
+                                    "contentType": "image/png",
+                                    "webviewUri": "http://localhost/files/20260216102944-fvh8ru-image.png",
+                                    "name": null,
+                                    "uri": null,
+                                    "tooltip": null,
+                                    "sessionId": null,
+                                    "timestamp": null,
+                                    "content": null,
+                                    "language": null
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": " can you remove the modbot.db thats by my pom.xml file? and then move everything to the other modbot.db?"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "autoAppliedRules": []
+        }
+    ],
+    "isAgent": true,
+    "isNameGenerated": true,
+    "isCustomAgent": false,
+    "isUnitTestsAgent": false,
+    "isE2EAgent": false,
+    "isWebDevAgent": false,
+    "isQnaAgent": false,
+    "isRepoInfoAgent": false,
+    "model": "auto",
+    "lastUserMessageAt": 1771255821626,
+    "isStreaming": true
+}
+}

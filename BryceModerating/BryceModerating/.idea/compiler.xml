@@ -9,8 +9,5 @@
         <module name="BryceModerating" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="BryceModerating (1)" target="21" />
-    </bytecodeTargetLevel>
   </component>
 </project>

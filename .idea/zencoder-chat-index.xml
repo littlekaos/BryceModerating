@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ai.zencoder.plugin.chat.index">
+    <option name="chatMetadata" value="{&quot;72dd7dcc-7672-4dd4-896f-61ba2003c052&quot;:{&quot;id&quot;:&quot;72dd7dcc-7672-4dd4-896f-61ba2003c052&quot;,&quot;title&quot;:&quot;Merge and Clean modbot.db Files&quot;,&quot;createdAt&quot;:1771255807742,&quot;updatedAt&quot;:1771255821626,&quot;isAgent&quot;:true,&quot;isNameGenerated&quot;:true,&quot;messageCount&quot;:1,&quot;lastMessagePreview&quot;:&quot;@Pasted image&quot;,&quot;lastUserMessageAt&quot;:1771255821626},&quot;3971a60d-ab85-458d-ad91-f07825a55c8a&quot;:{&quot;id&quot;:&quot;3971a60d-ab85-458d-ad91-f07825a55c8a&quot;,&quot;title&quot;:&quot;Consolidate Modbot Databases&quot;,&quot;createdAt&quot;:1771255857272,&quot;updatedAt&quot;:1771256309392,&quot;isAgent&quot;:true,&quot;isNameGenerated&quot;:true,&quot;messageCount&quot;:43,&quot;lastMessagePreview&quot;:&quot;**Analyzing Database Strategy**\n\nI've zeroed in on the database migration, focusing on the root `mod...&quot;,&quot;lastUserMessageAt&quot;:1771256174746}}" />
+  </component>
+</project>
